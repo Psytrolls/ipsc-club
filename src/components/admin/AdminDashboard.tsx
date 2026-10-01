@@ -7,6 +7,7 @@ import { TrainingSession, LeadInquiry, User, NewsArticle, LeadStatus } from '../
 import { getWhatsAppUrl, createCredentialsWhatsAppMessage, createTrainingSquadWhatsAppMessage } from '../../lib/whatsapp';
 import { checkUserDocuments } from '../../lib/documentStatus';
 import { DEFAULT_RANGE_LOCATION, DEFAULT_WAZE_URL, getWazeNavigationUrl } from '../../lib/navigation';
+import { ComplianceRadarModal } from '../modals/ComplianceRadarModal';
 import {
   Shield,
   Users,
@@ -52,6 +53,7 @@ export const AdminDashboard: React.FC = () => {
   } = useApp();
 
   const [activeTab, setActiveTab] = useState<'leads' | 'trainings' | 'users' | 'news' | 'pages'>('leads');
+  const [complianceOpen, setComplianceOpen] = useState(false);
 
   // Lead modal state
   const [selectedLead, setSelectedLead] = useState<LeadInquiry | null>(null);
@@ -418,15 +420,24 @@ export const AdminDashboard: React.FC = () => {
       {/* TAB 3: Users Management */}
       {activeTab === 'users' && (
         <div className="bg-white rounded-3xl border border-[#EFE6D5] p-5 shadow-sm space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <h3 className="font-bold text-base text-graphite-900">משתמשי המערכת, תפקידים וסטטוס חברות</h3>
-            <button
-              onClick={handleOpenNewUser}
-              className="px-3.5 py-2 rounded-xl bg-falcon-500 hover:bg-falcon-600 text-white text-sm font-bold flex items-center gap-1.5 shadow-sm"
-            >
-              <UserPlus size={15} />
-              <span>הוסף משתמש חדש</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setComplianceOpen(true)}
+                className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-900 text-white text-sm font-bold flex items-center gap-1.5 shadow-sm"
+              >
+                <ShieldAlert size={15} />
+                <span>רדאר תוקף מסמכים</span>
+              </button>
+              <button
+                onClick={handleOpenNewUser}
+                className="px-3.5 py-2 rounded-xl bg-falcon-500 hover:bg-falcon-600 text-white text-sm font-bold flex items-center gap-1.5 shadow-sm"
+              >
+                <UserPlus size={15} />
+                <span>הוסף משתמש חדש</span>
+              </button>
+            </div>
           </div>
 
           <div className="space-y-3">
@@ -978,6 +989,12 @@ export const AdminDashboard: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Compliance Radar Modal */}
+      <ComplianceRadarModal
+        isOpen={complianceOpen}
+        onClose={() => setComplianceOpen(false)}
+      />
     </div>
   );
 };

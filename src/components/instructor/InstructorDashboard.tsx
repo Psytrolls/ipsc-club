@@ -8,6 +8,7 @@ import { exportResultsToCsv, printTrainingSummary } from '../../lib/exportResult
 import { checkUserDocuments } from '../../lib/documentStatus';
 import { getWazeNavigationUrl } from '../../lib/navigation';
 import { LiveLeaderboardModal } from './LiveLeaderboardModal';
+import { ComplianceRadarModal } from '../modals/ComplianceRadarModal';
 import {
   Users,
   Calendar,
@@ -71,6 +72,8 @@ export const InstructorDashboard: React.FC = () => {
   const [activeScoreShooter, setActiveScoreShooter] = useState<Registration | null>(null);
   // Live Leaderboard (TV Match Mode)
   const [leaderboardOpen, setLeaderboardOpen] = useState(false);
+  // Compliance Radar Modal
+  const [complianceOpen, setComplianceOpen] = useState(false);
   // Feedback Modal state
   const [activeFeedbackShooter, setActiveFeedbackShooter] = useState<Registration | null>(null);
   const [feedbackSummary, setFeedbackSummary] = useState('');
@@ -265,6 +268,15 @@ export const InstructorDashboard: React.FC = () => {
               >
                 <Trophy size={14} />
                 <span>לוח תוצאות חי (TV)</span>
+              </button>
+
+              {/* Compliance Radar */}
+              <button
+                onClick={() => setComplianceOpen(true)}
+                className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-900 text-white text-sm font-bold flex items-center gap-1.5 transition-all shadow-sm"
+              >
+                <ShieldAlert size={14} />
+                <span>רדאר מסמכים ותוקף</span>
               </button>
 
               {/* Print Summary */}
@@ -577,6 +589,12 @@ export const InstructorDashboard: React.FC = () => {
         isOpen={leaderboardOpen}
         onClose={() => setLeaderboardOpen(false)}
         training={currentTraining}
+      />
+
+      {/* Compliance Radar Modal */}
+      <ComplianceRadarModal
+        isOpen={complianceOpen}
+        onClose={() => setComplianceOpen(false)}
       />
     </div>
   );

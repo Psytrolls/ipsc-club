@@ -7,6 +7,7 @@ import { ShooterTab } from '../common/BottomNav';
 import { ProfilePhoto } from '../common/ProfilePhoto';
 import { ShooterProgress } from './ShooterProgress';
 import { ShooterToolsModal } from '../modals/ShooterToolsModal';
+import { DocumentRenewalModal } from '../modals/DocumentRenewalModal';
 import {
   Calendar,
   Clock,
@@ -18,11 +19,14 @@ import {
   FileText,
   Pencil,
   ShieldAlert,
+  ShieldCheck,
   Navigation,
   Calculator,
   Award,
   HelpCircle,
   Wrench,
+  ExternalLink,
+  AlertTriangle
 } from 'lucide-react';
 
 export const ShooterOverview: React.FC<{
@@ -33,6 +37,7 @@ export const ShooterOverview: React.FC<{
   const { currentUser, getMyUpcomingTraining, getMyFocusItems, getMyFeedbacks, getMyResults } = useApp();
   const [toolsModalOpen, setToolsModalOpen] = useState(false);
   const [toolsTab, setToolsTab] = useState<'calc' | 'quiz' | 'badges' | 'log'>('calc');
+  const [renewalModalOpen, setRenewalModalOpen] = useState(false);
 
   const openTool = (selectedTab: 'calc' | 'quiz' | 'badges' | 'log') => {
     setToolsTab(selectedTab);
@@ -53,14 +58,51 @@ export const ShooterOverview: React.FC<{
   return (
     <div className="overview-page overview-reference space-y-6">
       {docs?.hasExpired && (
-        <div className="document-warning" role="status">
-          <ShieldAlert size={24} />
-          <div>
-            <strong>מסמך או רישיון פג תוקף</strong>
-            <p>עדכנו את תוקף המסמכים בפרופיל האישי.</p>
+        <div className="p-4 rounded-2xl bg-rose-50 border border-rose-300 flex flex-wrap items-center justify-between gap-3 text-right shadow-xs" role="status">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-rose-100 text-rose-800 flex items-center justify-center shrink-0">
+              <ShieldAlert size={22} />
+            </div>
+            <div>
+              <strong className="text-sm font-black text-rose-900 block">רישיון נשק או מסמך פג תוקף!</strong>
+              <p className="text-xs text-rose-700">על פי תקנות הבטיחות והרגולציה, חובה לחדש את המסמך לצורך השתתפות במטווח.</p>
+            </div>
           </div>
-          <button className="button-outline" onClick={() => onSelectTab('profile')}>
-            לפרופיל
+          <div className="flex items-center gap-2">
+            <button
+              className="px-4 py-2 bg-rose-700 hover:bg-rose-800 text-white rounded-xl text-xs font-bold transition flex items-center gap-1 shadow-sm"
+              onClick={() => setRenewalModalOpen(true)}
+            >
+              <ExternalLink size={13} />
+              <span>מרכז חידוש מקוון</span>
+            </button>
+            <button
+              className="px-3 py-2 bg-white border border-rose-300 text-rose-800 rounded-xl text-xs font-bold hover:bg-rose-100 transition"
+              onClick={() => onSelectTab('profile')}
+            >
+              לפרופיל
+            </button>
+          </div>
+        </div>
+      )}
+
+      {!docs?.hasExpired && docs?.hasExpiringSoon && (
+        <div className="p-4 rounded-2xl bg-amber-50 border border-amber-300 flex flex-wrap items-center justify-between gap-3 text-right shadow-xs" role="status">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-900 flex items-center justify-center shrink-0">
+              <AlertTriangle size={22} />
+            </div>
+            <div>
+              <strong className="text-sm font-black text-amber-900 block">שים לב: מסמך עומד לפוג ב-30 הימים הקרובים</strong>
+              <p className="text-xs text-amber-800">מומלץ להתחיל בהליך החידוש בהקדם כדי למנוע עיכובים באימונים הבאים.</p>
+            </div>
+          </div>
+          <button
+            className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1 shadow-sm"
+            onClick={() => setRenewalModalOpen(true)}
+          >
+            <ShieldCheck size={14} />
+            <span>הנחיות חידוש ועדכון</span>
           </button>
         </div>
       )}
@@ -320,6 +362,12 @@ export const ShooterOverview: React.FC<{
         isOpen={toolsModalOpen}
         onClose={() => setToolsModalOpen(false)}
         defaultTab={toolsTab}
+      />
+
+      {/* Document Renewal Helper Modal */}
+      <DocumentRenewalModal
+        isOpen={renewalModalOpen}
+        onClose={() => setRenewalModalOpen(false)}
       />
     </div>
   );
