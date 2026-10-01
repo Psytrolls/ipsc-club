@@ -90,7 +90,7 @@ interface AppContextType {
 }
 
 const AppContext=createContext<AppContextType|undefined>(undefined);
-const initialPages:PublicPages={id:'public',heroTitle:'מתאמנים יחד.',heroAccent:'מתקדמים יחד.',heroBody:'ברוכים הבאים לנץ המדבר.',aboutTitle:'הרבה מעבר לאימון במטווח.',aboutBody:'ספורט, קהילה והדרכה אישית.',sportTitle:'תנועה. ריכוז. ירי מעשי.',sportBody:'הכירו את ענף הירי המעשי.'};
+const initialPages:PublicPages={id:'public',heroTitle:'נץ המדבר',heroAccent:'מתאמנים יחד. מתקדמים יחד.',heroBody:'ברוכים הבאים לנץ המדבר.',aboutTitle:'הרבה מעבר לאימון במטווח.',aboutBody:'ספורט, קהילה והדרכה אישית.',sportTitle:'תנועה. ריכוז. ירי מעשי.',sportBody:'הכירו את ענף הירי המעשי.'};
 const empty={currentUser:null as User|null,users:[] as User[],trainings:[] as TrainingSession[],registrations:[] as Registration[],exerciseTemplates:[] as ExerciseTemplate[],exerciseResults:[] as ExerciseResult[],focusItems:[] as FocusItem[],feedbacks:[] as Feedback[],leads:[] as LeadInquiry[],news:[] as NewsArticle[],pages:initialPages};
 export const AppProvider:React.FC<{children:React.ReactNode}>=({children})=>{
  const [data,setData]=useState(empty);const [activeRole,setActiveRole]=useState<UserRole>('guest');const role=useRef<UserRole>('guest');const generation=useRef(0);const [toasts,setToasts]=useState<ToastMessage[]>([]);const [activationUrl,setActivationUrl]=useState<string|null>(null);

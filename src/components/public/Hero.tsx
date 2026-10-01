@@ -21,12 +21,9 @@ export const Hero: React.FC<{
       <div className="falcon-container hero-layout">
         <div className="hero-copy">
           <span className="eyebrow">נץ המדבר · DESERT FALCON</span>
-          <h1>
-            {pages.heroTitle}
-            {pages.heroAccent && <> {pages.heroAccent}</>}
-          </h1>
+          <h1>נץ המדבר</h1>
           <p className="hero-motto">
-            ספורט <span>•</span> קהילה <span>•</span> התקדמות
+            מתאמנים יחד. מתקדמים יחד.
           </p>
           <div className="hero-actions">
             <button className="button-primary" onClick={onOpenCourseModal}>
