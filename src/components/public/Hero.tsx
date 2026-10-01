@@ -32,7 +32,7 @@ export const Hero: React.FC<{
       </div>
       <div className="hero-photo rounded-3xl overflow-hidden shadow-2xl border border-[#DFCEB0]/60">
         <img
-          src="/assets/range-hero-v3.jpg"
+          src="/assets/range-hero-v4.jpg?v=20261001"
           alt="ירי מעשי במדבר - מועדון דזרט פלקון"
           fetchPriority="high"
           width="1200"
