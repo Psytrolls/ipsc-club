@@ -22,6 +22,8 @@ export interface User {
   classification?: string;
   avatarVersion?: string;
   twoFactorEnabled?: boolean;
+  mustChangePassword?: boolean;
+  temporaryPassword?: string;
 }
 
 export interface TrainingSession {

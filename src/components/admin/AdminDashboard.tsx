@@ -53,10 +53,28 @@ export const AdminDashboard: React.FC = () => {
 
   // User edit modal state
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [isNewUser, setIsNewUser] = useState(false);
+  const [temporaryPassword, setTemporaryPassword] = useState('');
 
   // News article modal state
   const [editingArticle, setEditingArticle] = useState<NewsArticle | null>(null);
   const [isNewArticle, setIsNewArticle] = useState(false);
+
+  const handleOpenNewUser = () => {
+    setEditingUser({
+      id: `usr-${Date.now()}`,
+      fullName: '',
+      phone: '',
+      email: '',
+      role: 'shooter',
+      roles: ['shooter'],
+      membershipStatus: 'active',
+      ipscCourseVerified: false,
+      joinedDate: new Date().toISOString().slice(0, 10),
+    });
+    setTemporaryPassword('');
+    setIsNewUser(true);
+  };
 
   // Stats calculation
   const totalActiveShooters = users.filter(u => u.membershipStatus === 'active' && u.role === 'shooter').length;
@@ -362,6 +380,13 @@ export const AdminDashboard: React.FC = () => {
         <div className="bg-white rounded-3xl border border-[#EFE6D5] p-5 shadow-sm space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="font-bold text-base text-graphite-900">משתמשי המערכת, תפקידים וסטטוס חברות</h3>
+            <button
+              onClick={handleOpenNewUser}
+              className="px-3.5 py-2 rounded-xl bg-falcon-500 hover:bg-falcon-600 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm"
+            >
+              <UserPlus size={15} />
+              <span>הוסף משתמש חדש</span>
+            </button>
           </div>
 
           <div className="space-y-3">
@@ -648,63 +673,210 @@ export const AdminDashboard: React.FC = () => {
         </div>
       )}
 
-      {/* Edit User Modal */}
+      {/* Edit / Create User Modal */}
       {editingUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-graphite-950/70 backdrop-blur-sm animate-fade-in text-right">
           <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl border border-[#EFE6D5] p-6 space-y-4 max-h-[90dvh] overflow-y-auto">
-            <h3 className="text-lg font-bold text-graphite-900">עריכת פרטי משתמש והרשאות</h3>
+            <h3 className="text-lg font-bold text-graphite-900">
+              {isNewUser ? 'הוספת חבר מועדון / משתמש חדש' : 'עריכת פרטי משתמש והרשאות'}
+            </h3>
 
-            <div className="space-y-3 text-xs"><label className="block">דוא״ל<input aria-label="דוא״ל משתמש" type="email" value={editingUser.email} onChange={e=>setEditingUser({...editingUser,email:e.target.value})} className="w-full p-2.5 rounded-xl border"/></label><label className="block">טלפון<input type="tel" required dir="ltr" value={editingUser.phone} onChange={e=>setEditingUser({...editingUser,phone:e.target.value})} className="w-full p-2.5 rounded-xl border"/></label><fieldset><legend>הרשאות נוספות</legend>{(['shooter','instructor','admin'] as const).map(r=><label key={r} className="inline-flex gap-2 p-2"><input type="checkbox" checked={editingUser.roles.includes(r)} disabled={editingUser.isSuperAdmin||r===editingUser.role} onChange={e=>setEditingUser({...editingUser,roles:e.target.checked?[...editingUser.roles,r]:editingUser.roles.filter(x=>x!==r)})}/>{r==='admin'?'מנהל':r==='instructor'?'מדריך':'יורה'}</label>)}</fieldset><label className="flex gap-2"><input type="checkbox" checked={editingUser.ipscCourseVerified} onChange={e=>setEditingUser({...editingUser,ipscCourseVerified:e.target.checked})}/>הקורס אומת על ידי המועדון</label>
-              <div>
-                <label className="block font-bold mb-1">שם מלא:</label>
-                <input
-                  type="text"
-                  value={editingUser.fullName}
-                  onChange={e => setEditingUser({ ...editingUser, fullName: e.target.value })}
-                  className="w-full p-2.5 rounded-xl border border-[#DFCEB0]"
-                />
+            <div className="space-y-4 text-xs">
+              {/* Mandatory Fields */}
+              <div className="p-3.5 bg-[#FAF8F5] border border-[#DFCEB0] rounded-2xl space-y-3">
+                <div className="text-[11px] font-bold text-falcon-800 flex items-center gap-1">
+                  <span>שדות חובה</span>
+                </div>
+
+                <div>
+                  <label className="block font-bold mb-1">
+                    שם מלא: <span className="text-rose-600">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="שם פרטי ומשפחה"
+                    value={editingUser.fullName}
+                    onChange={e => setEditingUser({ ...editingUser, fullName: e.target.value })}
+                    className="w-full p-2.5 rounded-xl border border-[#DFCEB0] bg-white font-semibold"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold mb-1">
+                    מספר טלפון: <span className="text-rose-600">*</span>
+                  </label>
+                  <input
+                    type="tel"
+                    required
+                    dir="ltr"
+                    inputMode="tel"
+                    placeholder="050-000-0000"
+                    value={editingUser.phone}
+                    onChange={e => setEditingUser({ ...editingUser, phone: e.target.value })}
+                    className="w-full p-2.5 rounded-xl border border-[#DFCEB0] bg-white font-mono font-semibold"
+                  />
+                  <span className="text-[10px] text-graphite-500 mt-0.5 block">
+                    מספר הטלפון משמש כשם המשתמש הראשי לכניסה למערכת
+                  </span>
+                </div>
+
+                <div>
+                  <label className="block font-bold mb-1">
+                    {isNewUser ? 'סיסמה זמנית ראשונית:' : 'קביעת סיסמה זמנית חדשה:'}{' '}
+                    {isNewUser && <span className="text-rose-600">*</span>}
+                  </label>
+                  <input
+                    type="text"
+                    dir="ltr"
+                    required={isNewUser}
+                    minLength={6}
+                    placeholder={isNewUser ? 'למשל: Falcon2026 (לפחות 6 תווים)' : 'השאר ריק אם אין צורך לשנות סיסמה'}
+                    value={temporaryPassword}
+                    onChange={e => setTemporaryPassword(e.target.value)}
+                    className="w-full p-2.5 rounded-xl border border-[#DFCEB0] bg-white font-mono font-semibold"
+                  />
+                  <span className="text-[10px] text-amber-800 bg-amber-50 border border-amber-200 px-2 py-1 rounded-lg mt-1 block">
+                    🔒 המשתמש יחויב להחליף סיסמה זו לסיסמה אישית בכניסתו הראשונה למערכת.
+                  </span>
+                </div>
               </div>
 
-              <div>
-                <label className="block font-bold mb-1">תפקיד ראשי:</label>
-                <select
-                  disabled={editingUser.isSuperAdmin} value={editingUser.role}
-                  onChange={e => setEditingUser({ ...editingUser, role: e.target.value as any,roles:Array.from(new Set([...editingUser.roles,e.target.value as any])) })}
-                  className="w-full p-2.5 rounded-xl border border-[#DFCEB0]"
-                >
-                  <option value="shooter">יורה / חבר מועדון</option>
-                  <option value="instructor">מדריך מוסמך</option>
-                  <option value="admin">מנהל מערכת</option>
-                </select>
-              </div>
+              {/* Optional Fields Accordion / Section */}
+              <details className="group border border-[#EFE6D5] rounded-2xl p-3 bg-white">
+                <summary className="font-bold text-xs cursor-pointer text-graphite-700 flex items-center justify-between select-none">
+                  <span>פרטים נוספים (רשות / אופציונלי)</span>
+                  <span className="text-falcon-700 text-sm group-open:rotate-180 transition-transform">▼</span>
+                </summary>
 
-              <div>
-                <label className="block font-bold mb-1">סטטוס חברות:</label>
-                <select
-                  disabled={editingUser.isSuperAdmin} value={editingUser.membershipStatus}
-                  onChange={e => setEditingUser({ ...editingUser, membershipStatus: e.target.value as any })}
-                  className="w-full p-2.5 rounded-xl border border-[#DFCEB0]"
-                >
-                  <option value="active">פעיל (רשאי להירשם לאימונים)</option>
-                  <option value="suspended">מושהה (חסום מאימונים)</option>
-                  <option value="pending">ממתין לאישור</option><option value="expired">חברות פגה</option>
-                </select>
-              </div>
+                <div className="space-y-3 pt-3 mt-2 border-t border-[#EFE6D5]">
+                  <div>
+                    <label className="block font-bold mb-1">כתובת דוא״ל (אופציונלי):</label>
+                    <input
+                      aria-label="דוא״ל משתמש"
+                      type="email"
+                      dir="ltr"
+                      placeholder="user@example.com"
+                      value={editingUser.email || ''}
+                      onChange={e => setEditingUser({ ...editingUser, email: e.target.value })}
+                      className="w-full p-2.5 rounded-xl border border-[#DFCEB0]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-bold mb-1">תפקיד ראשי:</label>
+                    <select
+                      disabled={editingUser.isSuperAdmin}
+                      value={editingUser.role}
+                      onChange={e =>
+                        setEditingUser({
+                          ...editingUser,
+                          role: e.target.value as any,
+                          roles: Array.from(new Set([...editingUser.roles, e.target.value as any])),
+                        })
+                      }
+                      className="w-full p-2.5 rounded-xl border border-[#DFCEB0]"
+                    >
+                      <option value="shooter">יורה / חבר מועדון</option>
+                      <option value="instructor">מדריך מוסמך</option>
+                      <option value="admin">מנהל מערכת</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block font-bold mb-1">סטטוס חברות:</label>
+                    <select
+                      disabled={editingUser.isSuperAdmin}
+                      value={editingUser.membershipStatus}
+                      onChange={e => setEditingUser({ ...editingUser, membershipStatus: e.target.value as any })}
+                      className="w-full p-2.5 rounded-xl border border-[#DFCEB0]"
+                    >
+                      <option value="active">פעיל (רשאי להירשם לאימונים)</option>
+                      <option value="suspended">מושהה (חסום מאימונים)</option>
+                      <option value="pending">ממתין לאישור</option>
+                      <option value="expired">חברות פגה</option>
+                    </select>
+                  </div>
+
+                  <fieldset>
+                    <legend className="font-bold mb-1">הרשאות נוספות:</legend>
+                    <div className="flex gap-2">
+                      {(['shooter', 'instructor', 'admin'] as const).map(r => (
+                        <label key={r} className="inline-flex items-center gap-1.5 p-1">
+                          <input
+                            type="checkbox"
+                            checked={editingUser.roles.includes(r)}
+                            disabled={editingUser.isSuperAdmin || r === editingUser.role}
+                            onChange={e =>
+                              setEditingUser({
+                                ...editingUser,
+                                roles: e.target.checked
+                                  ? [...editingUser.roles, r]
+                                  : editingUser.roles.filter(x => x !== r),
+                              })
+                            }
+                          />
+                          <span>{r === 'admin' ? 'מנהל' : r === 'instructor' ? 'מדריך' : 'יורה'}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </fieldset>
+
+                  <label className="flex items-center gap-2 pt-1">
+                    <input
+                      type="checkbox"
+                      checked={editingUser.ipscCourseVerified}
+                      onChange={e => setEditingUser({ ...editingUser, ipscCourseVerified: e.target.checked })}
+                    />
+                    <span>הקורס אומת על ידי המועדון</span>
+                  </label>
+
+                  <MemberFields value={editingUser} onChange={next => setEditingUser({ ...editingUser, ...next })} />
+                  {users.some(u => u.id === editingUser.id) && (
+                    <ProfilePhoto user={users.find(u => u.id === editingUser.id)!} editable />
+                  )}
+                </div>
+              </details>
             </div>
 
-            <p>הכניסה באמצעות מספר הטלפון. מנהל העל מוגן משינוי הרשאות ומאיפוס על ידי מנהלים אחרים.</p><MemberFields value={editingUser} onChange={next=>setEditingUser({...editingUser,...next})}/>{users.some(u=>u.id===editingUser.id)&&<ProfilePhoto user={users.find(u=>u.id===editingUser.id)!} editable/>}
             <div className="pt-3 flex justify-end gap-2 border-t border-gray-100">
               <button
-                onClick={() => setEditingUser(null)}
+                type="button"
+                onClick={() => {
+                  setEditingUser(null);
+                  setIsNewUser(false);
+                }}
                 className="px-4 py-2 rounded-xl text-graphite-600 hover:bg-gray-100 text-xs font-semibold"
               >
                 ביטול
               </button>
               <button
-                onClick={async () => { if(await saveUser(editingUser)) setEditingUser(null); }}
+                type="button"
+                onClick={async () => {
+                  if (!editingUser.fullName.trim()) {
+                    alert('יש להזין שם מלא');
+                    return;
+                  }
+                  if (!editingUser.phone.trim()) {
+                    alert('יש להזין מספר טלפון');
+                    return;
+                  }
+                  if (isNewUser && (!temporaryPassword || temporaryPassword.length < 6)) {
+                    alert('יש להזין סיסמה זמנית של לפחות 6 תווים הכוללת אותיות וספרות');
+                    return;
+                  }
+                  const userToSave = {
+                    ...editingUser,
+                    temporaryPassword: temporaryPassword || undefined,
+                  };
+                  if (await saveUser(userToSave)) {
+                    setEditingUser(null);
+                    setIsNewUser(false);
+                  }
+                }}
                 className="px-5 py-2 rounded-xl bg-falcon-500 hover:bg-falcon-600 text-white text-xs font-bold"
               >
-                שמור שינויים
+                {isNewUser ? 'צור משתמש חדש' : 'שמור שינויים'}
               </button>
             </div>
           </div>
