@@ -9,9 +9,9 @@ export const BottomNav: React.FC<{
     <div>
       {(
         [
-          { id: "overview", label: "הבית שלי", icon: Home },
+          { id: "overview", label: "בית", icon: Home },
           { id: "trainings", label: "אימונים", icon: Calendar },
-          { id: "results", label: "התקדמות", icon: ChartNoAxesCombined },
+          { id: "results", label: "תוצאות", icon: ChartNoAxesCombined },
           { id: "profile", label: "פרופיל", icon: User },
         ] as const
       ).map(({ id, label, icon: Icon }) => (
