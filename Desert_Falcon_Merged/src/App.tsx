@@ -14,7 +14,6 @@ import { CourseModal } from "./components/modals/CourseModal";
 import { JoinModal } from "./components/modals/JoinModal";
 import { ActivationLinkModal } from "./components/modals/ActivationLinkModal";
 import { LoginModal } from "./components/modals/LoginModal";
-import { ForcePasswordChangeModal } from "./components/modals/ForcePasswordChangeModal";
 const ShooterDashboard = lazy(() =>
   import("./components/shooter/ShooterDashboard").then((m) => ({
     default: m.ShooterDashboard,
@@ -62,7 +61,7 @@ export const AppContent: React.FC = () => {
     return () => window.removeEventListener('hashchange', activate);
   }, []);
   const [currentSection, setCurrentSection] = useState("hero");
-  const [newsCategory, setNewsCategory] = useState<"all" | "club" | "world">("all");
+  const [newsCategory,setNewsCategory]=useState<"all"|"club"|"world">("all");
 
   const scrollToSection = (sectionId: string) => {
     setCurrentSection(sectionId);
@@ -101,14 +100,11 @@ export const AppContent: React.FC = () => {
         >
           {publicView && (
             <div>
-              {currentSection === 'sport' ? <SportSection /> : currentSection === 'news' ? <NewsSection initialCategory={newsCategory} /> : <>
-                <Hero
-                  onOpenCourseModal={() => setCourseModalOpen(true)}
-                  onOpenJoinModal={() => setJoinModalOpen(true)}
-                />
-                <AboutSection />
-                <HomeNewsLinks onOpen={(category) => { setNewsCategory(category); scrollToSection('news'); }} />
-                <FAQSection />
+              {currentSection==='sport'?<SportSection/>:currentSection==='news'?<NewsSection initialCategory={newsCategory}/>:<>
+                <Hero onOpenCourseModal={()=>setCourseModalOpen(true)} onOpenJoinModal={()=>setJoinModalOpen(true)}/>
+                <AboutSection/>
+                <HomeNewsLinks onOpen={category=>{setNewsCategory(category);scrollToSection('news');}}/>
+                <FAQSection/>
               </>}
             </div>
           )}
@@ -147,13 +143,9 @@ export const AppContent: React.FC = () => {
         onClose={() => setLoginModalOpen(false)}
       />
 
-      <div className="demo-ribbon">
-        Desert Falcon · התשלום מתבצע במקום בלבד
-      </div>
       {/* 6. Notifications Toast Container */}
       <ToastContainer />
       <ActivationLinkModal />
-      <ForcePasswordChangeModal />
     </div>
   );
 };

@@ -1,0 +1,37 @@
+import {references} from './exercises.mjs';
+import { AsyncLocalStorage } from 'node:async_hooks';
+import {randomBytes,randomUUID,createHash} from 'node:crypto';
+export const storage=new AsyncLocalStorage();
+const columns={accounts:['id','email','data'],records:['kind','id','data'],passkeys:['id','user_id','public_key','counter','transports'],sessions:['hash','user_id','created','touched','expires'],invitations:['hash','user_id','expires','recovery'],challenges:['hash','challenge','purpose','user_id','invite_hash','expires'],audit:['id','at','user_id','action','target']};
+const context=()=>{const s=storage.getStore();if(!s)throw Error('Database request context missing');return s;};
+function selected(sql,args){const s=context();const m=sql.match(/^SELECT (.+) FROM (\w+)(?: WHERE (.+?))?(?: ORDER BY (\w+) (ASC|DESC))?(?: LIMIT (\d+))?$/);if(!m)throw Error('Unsupported internal read');let rows=s.tables[m[2]];if(!rows)throw Error('Unknown internal table');if(m[3]){const parts=m[3].split(' AND ');rows=rows.filter(row=>parts.every((p,i)=>{const q=p.match(/^(\w+)(=|<)\?$/);if(!q)throw Error('Unsupported internal condition');return q[2]==='='?row[q[1]]===args[i]:row[q[1]]<args[i];}));}if(m[4])rows=[...rows].sort((a,b)=>String(a[m[4]]).localeCompare(String(b[m[4]]))*(m[5]==='DESC'?-1:1));if(m[6])rows=rows.slice(0,+m[6]);return rows.map(row=>m[1]==='*'?{...row}:Object.fromEntries(m[1].split(',').map(k=>[k,row[k]])));}
+function changed(sql,args){const s=context();const insert=sql.match(/^INSERT INTO (\w+) VALUES\(([^)]+)\)(.*)$/);if(insert){const table=insert[1],cols=columns[table];const row=Object.fromEntries(cols.map((c,i)=>[c,args[i]]));const keys=table==='records'?['kind','id']:table==='sessions'||table==='invitations'||table==='challenges'?['hash']:['id'];const index=s.tables[table].findIndex(r=>keys.every(k=>r[k]===row[k]));if(index>=0&&!insert[3])throw Error('Duplicate key');if(table==='accounts'&&s.tables.accounts.some(r=>r.id!==row.id&&r.email===row.email))throw Error('Duplicate email');if(index>=0)s.tables[table][index]=row;else s.tables[table].push(row);s.changes.push({sql:`INSERT INTO ${table} (${cols.join(',')}) SELECT ${cols.map(()=>'?').join(',')} WHERE EXISTS (SELECT 1 FROM revisions WHERE id='club' AND version=?)${insert[3]}`,args:[...args,s.next]});return {changes:1};}
+ const del=sql.match(/^DELETE FROM (\w+) WHERE (.+)$/);const update=sql.match(/^UPDATE (\w+) SET (\w+)=\? WHERE (\w+)=\?$/);if(del){const parts=del[2].split(' AND ');const matches=row=>parts.every((p,i)=>{const m=p.match(/^(\w+)(=|<)\?$/);return m[2]==='='?row[m[1]]===args[i]:row[m[1]]<args[i];});const old=s.tables[del[1]];s.tables[del[1]]=old.filter(r=>!matches(r));s.changes.push({sql:sql+" AND EXISTS (SELECT 1 FROM revisions WHERE id='club' AND version=?)",args:[...args,s.next]});return {changes:old.length-s.tables[del[1]].length};}if(update){for(const row of s.tables[update[1]])if(row[update[3]]===args[1])row[update[2]]=args[0];s.changes.push({sql:sql+" AND EXISTS (SELECT 1 FROM revisions WHERE id='club' AND version=?)",args:[...args,s.next]});return {changes:1};}throw Error('Unsupported internal mutation');}
+export const db={prepare:sql=>({all:(...a)=>selected(sql,a),get:(...a)=>selected(sql,a)[0],run:(...a)=>changed(sql,a)})};
+export const uuid=()=>randomUUID();export const token=()=>randomBytes(32).toString('base64url');export const hash=x=>createHash('sha256').update(x).digest('hex');
+export const all=kind=>db.prepare('SELECT data FROM records WHERE kind=?').all(kind).map(r=>JSON.parse(r.data));
+export const get=(kind,id)=>{const r=db.prepare('SELECT data FROM records WHERE kind=? AND id=?').get(kind,id);return r?JSON.parse(r.data):null;};
+export const put=(kind,obj)=>db.prepare('INSERT INTO records VALUES(?,?,?) ON CONFLICT(kind,id) DO UPDATE SET data=excluded.data').run(kind,obj.id,JSON.stringify(obj));
+export const remove=(kind,id)=>db.prepare('DELETE FROM records WHERE kind=? AND id=?').run(kind,id);
+export const user=id=>{const r=db.prepare('SELECT data FROM accounts WHERE id=?').get(id);return r?JSON.parse(r.data):null;};
+export const users=()=>db.prepare('SELECT data FROM accounts').all().map(r=>JSON.parse(r.data));
+export const saveUser=u=>db.prepare('INSERT INTO accounts VALUES(?,?,?) ON CONFLICT(id) DO UPDATE SET email=excluded.email,data=excluded.data').run(u.id,u.email.toLowerCase(),JSON.stringify(u));
+export const audit=(u,action,target)=>db.prepare('INSERT INTO audit VALUES(?,?,?,?,?)').run(uuid(),new Date().toISOString(),u?.id||null,action,target||null);
+export function tx(fn){const s=context(),tables=structuredClone(s.tables),n=s.changes.length;try{return fn();}catch(e){s.tables=tables;s.changes.length=n;throw e;}}
+export function invitation(u,recovery=false,ownerRecovery=false){return tx(()=>{db.prepare('DELETE FROM invitations WHERE user_id=?').run(u.id);const value=token();db.prepare('INSERT INTO invitations VALUES(?,?,?,?)').run(hash(value),u.id,Date.now()+24*3600000,ownerRecovery?2:recovery?1:0);audit(u,recovery?'recovery-issued':'invitation-issued',u.id);return `${context().origin}/#activate=${value}`;});}
+export const defaultPages={id:'public',heroTitle:'דיוק. קהילה.',heroAccent:'דרך להתקדם.',heroBody:'ברוכים הבאים לנץ המדבר. מועדון ירי מעשי שבו כל אימון הוא עוד צעד קדימה — יחד, בקצב שלכם.',aboutTitle:'הרבה מעבר לאימון במטווח.',aboutBody:'נץ המדבר מחבר בין אהבה לספורט הירי המעשי, הדרכה אישית וקהילה. מקום ללמוד, לשפר ביצועים ולבנות ביטחון — אימון אחרי אימון.',sportTitle:'תנועה. ריכוז. ירי מעשי.',sportBody:'הכירו את IPSC — ענף ספורט המשלב דיוק, כוח ומהירות. ההתחלה שלכם היא קורס והדרכה מקצועית.'};
+export function seed(){
+ for(const reference of references){const existing=get('templates',reference.id);if(!existing)put('templates',reference);else if(!existing.diagramUrl&&reference.diagramUrl)put('templates',{...existing,diagramUrl:reference.diagramUrl});}
+ const pages=get('pages','public');
+ if(!pages)put('pages',defaultPages);
+ else {
+  let renamed=false;
+  const updated=Object.fromEntries(Object.entries(pages).map(([key,value])=>{
+   if(typeof value==='string'&&value.includes('דזרט פלקון')){renamed=true;return [key,value.replaceAll('דזרט פלקון','נץ המדבר')];}
+   return [key,value];
+  }));
+  if(renamed)put('pages',updated);
+ }
+if(!all('templates').length)put('templates',{id:'club-standard',name:'תרגיל מועדון',description:'תבנית מעקב אישי',category:'מועדון',targetCount:3,maxPoints:60,measurementType:'hit_factor'});}
+export async function loadContext(binding,origin){const names=Object.keys(columns);const queries=[binding.prepare("INSERT OR IGNORE INTO revisions VALUES('club','0')"),binding.prepare("SELECT version FROM revisions WHERE id='club'"),...names.map(n=>binding.prepare(`SELECT * FROM ${n}`))];const rows=await binding.batch(queries);const tables=Object.fromEntries(names.map((n,i)=>[n,rows[i+2].results.map(r=>n==='passkeys'?{...r,public_key:new Uint8Array(r.public_key)}:r)]));return {tables,version:rows[1].results[0].version,next:uuid(),changes:[],origin};}
+export async function commitContext(binding,s){if(!s.changes.length)return true;const values=a=>a.map(v=>v instanceof Uint8Array?v.buffer.slice(v.byteOffset,v.byteOffset+v.byteLength):v);const result=await binding.batch([binding.prepare("UPDATE revisions SET version=? WHERE id='club' AND version=?").bind(s.next,s.version),...s.changes.map(c=>binding.prepare(c.sql).bind(...values(c.args)))]);return result[0].meta.changes===1;}
