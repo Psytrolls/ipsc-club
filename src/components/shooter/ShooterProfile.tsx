@@ -38,13 +38,13 @@ export const ShooterProfile: React.FC = () => {
           <TargetIcon size={160} className="text-white" />
         </div>
 
-        <div className="flex items-center gap-4 relative z-10">
-          <ProfilePhoto user={currentUser} editable/>
-          <div>
-            <h3 className="text-xl font-black">{currentUser.fullName}</h3>
+        <div className="flex items-center gap-5 relative z-10">
+          <ProfilePhoto user={currentUser} editable darkTheme />
+          <div className="space-y-1">
+            <h3 className="text-2xl font-black text-white">{currentUser.fullName}</h3>
             <div className="flex items-center gap-2 mt-1">
-              <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 font-bold flex items-center gap-1">
-                <CheckCircle2 size={12} />
+              <span className="text-xs px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 font-bold flex items-center gap-1.5 shadow-sm">
+                <CheckCircle2 size={13} />
                 <span>
                   {currentUser.membershipStatus === "active"
                     ? "חבר מועדון פעיל"
@@ -55,20 +55,20 @@ export const ShooterProfile: React.FC = () => {
           </div>
         </div>
 
-        <div className="pt-2 border-t border-graphite-700/80 grid grid-cols-2 gap-3 text-xs text-graphite-300 relative z-10">
+        <div className="pt-3 border-t border-graphite-700/80 grid grid-cols-2 gap-3 text-xs text-[#EFE6D5] relative z-10">
           <div>
-            <span className="text-graphite-400 block text-[11px]">
+            <span className="text-[#DFCEB0] block text-[11px] font-medium">
               תאריך הצטרפות:
             </span>
-            <span className="font-mono text-white">
+            <span className="font-mono font-bold text-white text-sm">
               {currentUser.joinedDate}
             </span>
           </div>
           <div>
-            <span className="text-graphite-400 block text-[11px]">
+            <span className="text-[#DFCEB0] block text-[11px] font-medium">
               מזהה יורה:
             </span>
-            <span className="font-mono text-white">{currentUser.shooterNumber||"טרם הוגדר"}</span>
+            <span className="font-mono font-bold text-white text-sm">{currentUser.shooterNumber || "טרם הוגדר"}</span>
           </div>
         </div>
       </div>
