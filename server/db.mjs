@@ -19,19 +19,27 @@ export const saveUser=u=>{const accountEmail=u.email?u.email.toLowerCase():`no-e
 export const audit=(u,action,target)=>db.prepare('INSERT INTO audit VALUES(?,?,?,?,?)').run(uuid(),new Date().toISOString(),u?.id||null,action,target||null);
 export function tx(fn){const s=context(),tables=structuredClone(s.tables),n=s.changes.length;try{return fn();}catch(e){s.tables=tables;s.changes.length=n;throw e;}}
 export function invitation(u,recovery=false,ownerRecovery=false){return tx(()=>{db.prepare('DELETE FROM invitations WHERE user_id=?').run(u.id);const value=token();db.prepare('INSERT INTO invitations VALUES(?,?,?,?)').run(hash(value),u.id,Date.now()+24*3600000,ownerRecovery?2:recovery?1:0);audit(u,recovery?'recovery-issued':'invitation-issued',u.id);return `${context().origin}/#activate=${value}`;});}
-export const defaultPages={id:'public',heroTitle:'דיוק. קהילה.',heroAccent:'דרך להתקדם.',heroBody:'ברוכים הבאים לנץ המדבר. מועדון ירי מעשי שבו כל אימון הוא עוד צעד קדימה — יחד, בקצב שלכם.',aboutTitle:'הרבה מעבר לאימון במטווח.',aboutBody:'נץ המדבר מחבר בין אהבה לספורט הירי המעשי, הדרכה אישית וקהילה. מקום ללמוד, לשפר ביצועים ולבנות ביטחון — אימון אחרי אימון.',sportTitle:'תנועה. ריכוז. ירי מעשי.',sportBody:'הכירו את IPSC — ענף ספורט המשלב דיוק, כוח ומהירות. ההתחלה שלכם היא קורס והדרכה מקצועית.'};
+export const defaultPages={id:'public',heroTitle:'מתאמנים יחד.',heroAccent:'מתקדמים יחד.',heroBody:'ברוכים הבאים לנץ המדבר. מועדון ירי מעשי שבו כל אימון הוא עוד צעד קדימה — יחד, בקצב שלכם.',aboutTitle:'הרבה מעבר לאימון במטווח.',aboutBody:'נץ המדבר מחבר בין אהבה לספורט הירי המעשי, הדרכה אישית וקהילה. מקום ללמוד, לשפר ביצועים ולבנות ביטחון — אימון אחרי אימון.',sportTitle:'תנועה. ריכוז. ירי מעשי.',sportBody:'הכירו את IPSC — ענף ספורט המשלב דיוק, כוח ומהירות. ההתחלה שלכם היא קורס והדרכה מקצועית.'};
 export function seed(){
  for(const reference of references){const existing=get('templates',reference.id);if(!existing)put('templates',reference);else if(!existing.diagramUrl&&reference.diagramUrl)put('templates',{...existing,diagramUrl:reference.diagramUrl});}
  for(const trn of all('trainings')){if(trn.location==='מגרש הדרומי'||!trn.location){put('trainings',{...trn,location:'מטווח נץ המדבר, מתחם מול 7, שדרות',locationMapUrl:trn.locationMapUrl||'https://waze.com/ul?q=%D7%9E%D7%98%D7%95%D7%95%D7%97+%D7%A0%D7%A5+%D7%94%D7%9E%D7%93%D7%91%D7%A8+%D7%A9%D7%93%D7%A8%D7%95%D7%AA&navigate=yes'});}}
  const pages=get('pages','public');
  if(!pages)put('pages',defaultPages);
  else {
-  let renamed=false;
-  const updated=Object.fromEntries(Object.entries(pages).map(([key,value])=>{
-   if(typeof value==='string'&&value.includes('דזרט פלקון')){renamed=true;return [key,value.replaceAll('דזרט פלקון','נץ המדבר')];}
-   return [key,value];
-  }));
-  if(renamed)put('pages',updated);
+  let modified=false;
+  const updated={...pages};
+  if(updated.heroTitle==='דיוק. קהילה.'||updated.heroAccent==='דרך להתקדם.'){
+    updated.heroTitle='מתאמנים יחד.';
+    updated.heroAccent='מתקדמים יחד.';
+    modified=true;
+  }
+  for(const [key,value] of Object.entries(updated)){
+   if(typeof value==='string'&&value.includes('דזרט פלקון')){
+     updated[key]=value.replaceAll('דזרט פלקון','נץ המדבר');
+     modified=true;
+   }
+  }
+  if(modified)put('pages',updated);
  }
 if(!all('templates').length)put('templates',{id:'club-standard',name:'תרגיל מועדון',description:'תבנית מעקב אישי',category:'מועדון',targetCount:3,maxPoints:60,measurementType:'hit_factor'});}
 export async function loadContext(binding,origin){const names=Object.keys(columns);const queries=[binding.prepare("INSERT OR IGNORE INTO revisions VALUES('club','0')"),binding.prepare("SELECT version FROM revisions WHERE id='club'"),...names.map(n=>binding.prepare(`SELECT * FROM ${n}`))];const rows=await binding.batch(queries);const tables=Object.fromEntries(names.map((n,i)=>[n,rows[i+2].results.map(r=>n==='passkeys'?{...r,public_key:new Uint8Array(r.public_key)}:r)]));return {tables,version:rows[1].results[0].version,next:uuid(),changes:[],origin};}
