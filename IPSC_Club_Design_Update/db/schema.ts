@@ -1,0 +1,11 @@
+import {sqliteTable,text,integer,primaryKey,index,customType} from 'drizzle-orm/sqlite-core';
+const blob=customType<{data:Uint8Array}>({dataType(){return 'blob';}});
+export const accounts=sqliteTable('accounts',{id:text().primaryKey(),email:text().notNull().unique(),data:text().notNull()});
+export const records=sqliteTable('records',{kind:text().notNull(),id:text().notNull(),data:text().notNull()},t=>[primaryKey({columns:[t.kind,t.id]})]);
+export const passkeys=sqliteTable('passkeys',{id:text().primaryKey(),user_id:text().notNull().references(()=>accounts.id),public_key:blob().notNull(),counter:integer().notNull(),transports:text().notNull()},t=>[index('passkeys_user').on(t.user_id)]);
+export const sessions=sqliteTable('sessions',{hash:text().primaryKey(),user_id:text().notNull().references(()=>accounts.id),created:integer().notNull(),touched:integer().notNull(),expires:integer().notNull()},t=>[index('sessions_user').on(t.user_id)]);
+export const invitations=sqliteTable('invitations',{hash:text().primaryKey(),user_id:text().notNull().references(()=>accounts.id),expires:integer().notNull(),recovery:integer().notNull().default(0)});
+export const challenges=sqliteTable('challenges',{hash:text().primaryKey(),challenge:text().notNull(),purpose:text().notNull(),user_id:text(),invite_hash:text(),expires:integer().notNull()});
+export const audit=sqliteTable('audit',{id:text().primaryKey(),at:text().notNull(),user_id:text(),action:text().notNull(),target:text()});
+export const revisions=sqliteTable('revisions',{id:text().primaryKey(),version:text().notNull()});
+export const limits=sqliteTable('limits',{key:text().primaryKey(),count:integer().notNull(),window:integer().notNull()});

@@ -1,0 +1,19 @@
+import React,{useEffect,useRef,useState} from 'react';
+import {Expand,X,ImageOff} from 'lucide-react';
+import {exerciseImages} from '../../lib/exerciseImages';
+type Props={name:string;diagramUrl:string;sourceUrl?:string;paper:number;plates:number;poppers:number;noShoots:number};
+function Target({kind}:{kind:'paper'|'plate'|'popper'|'noShoot'}){return <svg viewBox="0 0 80 90" width="64" height="72" aria-hidden="true">{kind==='paper'||kind==='noShoot'?<><path d="M25 6H55L67 20V65L55 78H25L13 65V20Z" fill={kind==='paper'?'#c5a474':'#fff'} stroke="#887553" strokeWidth="2"/>{kind==='paper'&&<path d="M31 27H49V60H31Z" fill="none" stroke="#887553" strokeDasharray="3 3"/>}</>:kind==='plate'?<><path d="M36 54H44V81H36Z" fill="#a4ada6"/><path d="M21 82H59" stroke="#67766c" strokeWidth="3"/><circle cx="40" cy="29" r="23" fill="#e1e6df" stroke="#67766c" strokeWidth="2"/></>:<><path d="M27 84L32 47C15 34 24 10 40 10C56 10 65 34 48 47L53 84Z" fill="#e1e6df" stroke="#67766c" strokeWidth="2"/><path d="M19 85H61" stroke="#67766c" strokeWidth="3"/></>}</svg>;}
+export const ExercisePreview:React.FC<Props>=({name,diagramUrl,sourceUrl,paper,plates,poppers,noShoots})=>{
+ const dialog=useRef<HTMLDialogElement>(null),[failed,setFailed]=useState(false);
+ const reference=exerciseImages.find(image=>diagramUrl.includes(image.id)||(!diagramUrl&&sourceUrl==='https://www.ipsc.org/match-sanctioning/classifier-stages/'&&image.code===name));
+ let imageUrl=reference?.preview||diagramUrl;let originalUrl=diagramUrl||reference?.source||'';
+ try{if(!reference&&diagramUrl){const url=new URL(diagramUrl);if(url.protocol!=='https:'){imageUrl='';originalUrl='';}else if(url.hostname==='drive.google.com'){const id=url.pathname.match(/\/file\/d\/([\w-]+)/)?.[1]||url.searchParams.get('id');if(id)imageUrl='https://drive.google.com/thumbnail?id='+encodeURIComponent(id)+'&sz=w1200';}}}catch{imageUrl='';originalUrl='';}
+ useEffect(()=>setFailed(false),[imageUrl]);
+ const types=[{kind:'paper' as const,label:'קרטון',count:paper},{kind:'plate' as const,label:'פלייטים',count:plates},{kind:'popper' as const,label:'פופרים',count:poppers},{kind:'noShoot' as const,label:'מטרות ענישה',count:noShoots}];
+ return <div className="exercise-preview">
+ {imageUrl&&!failed?<figure><button className="exercise-image-button" type="button" aria-label={`הגדלת תרשים ${name}`} onClick={()=>dialog.current?.showModal()}><img src={imageUrl} alt={`תרשים ${name}${reference?' — IPSC':''}`} loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={()=>setFailed(true)}/><span><Expand size={16}/>הגדלה</span></button><figcaption>{reference?'תרשים המקור · IPSC':'תמונת התרגיל'}{reference&&<small>שינוי הכמויות בטופס אינו משנה את תרשים המקור.</small>}</figcaption></figure>:imageUrl&&failed?<div className="preview-unavailable"><ImageOff size={24}/><p>לא ניתן להציג את התמונה. אפשר לפתוח את הקישור המקורי או להוסיף קישור ישיר לתמונה.</p></div>:null}
+ {originalUrl&&<a className="text-link" href={originalUrl} target="_blank" rel="noopener noreferrer">פתיחת התמונה המקורית</a>}
+ <div className="target-inventory" aria-label="הרכב המטרות">{types.map(({kind,label,count})=><div className={count?'':'is-empty'} key={kind}><Target kind={kind}/><span>{label}</span><strong dir="ltr">× {count}</strong></div>)}</div><small className="inventory-caption">הרכב המטרות שנבחר · התצוגה אינה מציינת מיקום או מרחק.</small>
+ <dialog ref={dialog} className="exercise-image-dialog" onClick={e=>{if(e.target===e.currentTarget)dialog.current?.close();}}><div className="dialog-heading"><h3>{name}</h3><button type="button" className="icon-button" aria-label="סגירה" onClick={()=>dialog.current?.close()}><X size={22}/></button></div>{imageUrl&&!failed&&<img src={imageUrl} alt={`תרשים מוגדל — ${name}`} referrerPolicy="no-referrer"/>}{originalUrl&&<a href={originalUrl} target="_blank" rel="noopener noreferrer" className="text-link">פתיחה בגודל המקורי</a>}</dialog>
+ </div>;
+};

@@ -1,0 +1,5 @@
+import React from 'react';
+import {Globe,Newspaper} from 'lucide-react';
+export const HomeNewsLinks:React.FC<{onOpen:(category:'club'|'world')=>void}>=({onOpen})=><section className="home-news-links falcon-container" aria-label="חדשות מהקהילה ומהעולם">
+ {([{category:'club',title:'חדשות המועדון',text:'סיפורים מהשטח, הישגים, יוזמות קהילתיות וכל מה שקורה במועדון.',image:'/assets/range-approved.webp',icon:Newspaper},{category:'world',title:'מהעולם',text:'עדכונים, כתבות ופרשנויות מעולם הירי המעשי בארץ ובעולם.',image:'/assets/shooter-approved.webp',icon:Globe}] as const).map(({category,title,text,image,icon:Icon})=><article className="home-news-tile" key={category}><img src={image} alt={category==='club'?'מטרת IPSC במטווח מדברי':'יורה ספורטיבי עם ציוד מגן'} width="720" height="420" loading="lazy"/><div className="home-news-body"><h2><span className="home-news-icon"><Icon size={22}/></span>{title}</h2><p>{text}</p><button className="button-outline" onClick={()=>onOpen(category)}>קראו עוד</button></div></article>)}
+</section>;

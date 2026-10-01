@@ -1,0 +1,42 @@
+# Desert Falcon — hosted private review
+
+Hebrew RTL club website with admin, instructor and shooter accounts, phone-number and password authentication, D1 persistence, training booking/waitlist, results and feedback. Payments take place on site.
+
+This Site is owner-private for review. The hosting dispatcher requires the owner's ChatGPT sign-in before serving the application. Open member login and select the administrator password setup button. The trusted hosting identity supplies the account email and name; it does not replace the club password login.
+
+Bootstrap is enabled only by PRIVATE_OWNER_SETUP=1 for this owner-private review. Before enabling broader or public access, disable this flag and retain existing administrative accounts. A new administrator is created only when none exists; the initial hosting identity is bound server-side and cannot bootstrap another administrator. No default users, passwords, keys or activation tokens are committed.
+
+D1 access preloads a request-local snapshot and records changes. Commits use a revision compare-and-swap followed by revision-guarded statements in one D1 batch transaction; a conflict retries the whole operation before returning its response. This retains capacity, invitation consumption and role-change consistency across concurrent requests. Product data is stored in indexed D1 tables. For a much larger club, narrow request snapshots to the specific user/training to reduce memory and query work.
+
+The site requires HTTPS and its configured APP_ORIGIN; Password hashes use bcrypt cost 12, a random salt, minimum 6 characters including letters and digits and a strict 72 UTF-8 byte limit. After five failed attempts the account is blocked for 15 minutes; login responses do not distinguish missing users from incorrect passwords. Session cookies are secure, HttpOnly and SameSite=Strict. The server verifies memberships and record-level authorization. Persistent IP/request limits are enforced before the application. Invite links are manually handed to verified users; automated email delivery is not configured. Decorative range photo is an illustration and should be replaced with a real club photo before public launch.
+
+Build: npm ci, npm run build. Tests: npm test; node scripts/qa-worker.mjs. Drizzle owns schema migrations in drizzle/. Publishing uses the Sites workflow and applies migrations before deployment. Do not alter already-applied migrations.
+
+Source: Cloudflare's Express runtime integration https://developers.cloudflare.com/workers/tutorials/deploy-an-express-app/; Password storage https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html.
+
+Existing Passkey-only owner accounts can set their first password from the trusted owner bootstrap. Old keys and sessions are revoked on activation. The owner-private site provides a separate explicit owner recovery button tied to its existing hosting identity. Other users receive one-use links from the club administrator. Public rollout must disable PRIVATE_OWNER_SETUP, including owner hosting recovery.
+
+Profile photo uploads are reduced in the browser to a 256px WebP thumbnail without original metadata, limited to 65KB on the server, MIME/magic checked and stored in private R2. Image reads require access to that member. DOB, shooter number, handgun division and classification are editable in member and admin profiles. Fields describe member-provided data; there is no federation verification integration.
+
+Course information references Rishon IPSC, Rehovot range and Northarm course pages, reviewed 2026-10-01. Applications without a personal licence are accepted for manual eligibility/approval review. Do not transfer another club's schedules, banking details or operational policies to Desert Falcon.
+
+Social links: administrator → עריכת עמודי האתר → רשתות חברתיות ויצירת קשר. Save HTTPS links for WhatsApp (wa.me, api.whatsapp.com, chat.whatsapp.com), Instagram and Facebook. Only configured links appear in the footer; clear a field to hide its button. Links are validated server-side and editable only by administrators.
+
+2026-10-01 update: sign-in uses normalized phone numbers only (Israeli local/international forms). Existing passwords remain valid. The platform owner is the server-derived superadministrator: other administrators cannot edit, suspend, remove, reset or replace their profile photo. Only self-service password change or trusted owner recovery can change this password. An existing owner without a phone can bind one during trusted owner recovery. Five failed attempts block an account for 15 minutes; expiry resets the attempt window. The requested six-character floor is a product choice, not a claim of current best-practice password strength; longer passwords remain supported.
+
+Exercise planner: assigned instructors configure 1–30 exercises per training, paper/hits per paper/plates/poppers/no-shoots, approved conditions, division and power factor on each result. Paper and metal totals must match the configured composition. Server owns scoring. Supported measurement types are Hit Factor and points; custom time-plus scoring is not configured. Exercises and result snapshots are immutable; edits create new versions, unchanged library copies retain comparable versions. Club copies of official references are not official classification submissions.
+
+Reference library: ten short-course composition entries from https://www.ipsc.org/match-sanctioning/classifier-stages/ reviewed 2026-10-01. Original documents remain linked through that catalog. Ten original IPSC image previews are included under public/assets/exercises, with their source links recorded in server/exercise-images.json. Instructors must confirm actual range suitability and record complete conditions before scoring; examples are not pre-approved for any indoor range.
+
+Statistics: separate version/division/power-factor/scoring groups. Paper-only A percentage includes paper misses in denominator. Base median first 3 and recent median last 5 require at least 8 non-overlapping results; zero HF base has no percentage. Accuracy changes use percentage points; time decreases are improvements. Display thresholds 3% time and 2 percentage points accuracy are configurable product constants in src/lib/statistics.ts, not validated sporting norms. Legacy results without context remain in history. Instructor confirmation is required to complete a focus item.
+
+Exercise image previews: select a template in the instructor exercise planner to see its image. Tap to enlarge. Original IPSC diagrams retain their source appearance; changing target counts updates the inventory illustration, not the original image. Custom HTTPS image links and public Google Drive image links are supported; unavailable images show an original-link fallback.
+
+
+## Active source and design preview
+
+Docker builds the project at the repository root (`src/`, `public/`, `package.json`). The nested `Desert_Falcon_Merged/` directory is an archived copy and is not deployed. Edit root files to update the running application.
+
+For a local read-only design review: `npm ci`, then `npm run design:preview`, then open http://127.0.0.1:5173/design-review.html. All preview records are fictional and mutations are disabled. The shooter overview now uses only actual profile, result, training and feedback data; missing results display an empty state rather than invented statistics. Document-expiry alerts and range navigation are retained.
+
+After updating source on the server, run `docker compose up -d --build app` from the repository root. This rebuilds the application while preserving the existing `./data:/app/data` volume. Never delete the data directory or run `docker compose down -v` as part of a design update.
