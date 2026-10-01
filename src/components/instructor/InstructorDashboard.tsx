@@ -7,6 +7,7 @@ import { getWhatsAppUrl, createTrainingSquadWhatsAppMessage } from '../../lib/wh
 import { exportResultsToCsv, printTrainingSummary } from '../../lib/exportResults';
 import { checkUserDocuments } from '../../lib/documentStatus';
 import { getWazeNavigationUrl } from '../../lib/navigation';
+import { LiveLeaderboardModal } from './LiveLeaderboardModal';
 import {
   Users,
   Calendar,
@@ -29,7 +30,9 @@ import {
   FileSpreadsheet,
   Printer,
   ShieldAlert,
-  Navigation
+  Navigation,
+  Trophy,
+  Tv
 } from 'lucide-react';
 import { TargetIcon } from '../common/TargetIcon';
 
@@ -66,6 +69,8 @@ export const InstructorDashboard: React.FC = () => {
 
   // Score Entry Modal state
   const [activeScoreShooter, setActiveScoreShooter] = useState<Registration | null>(null);
+  // Live Leaderboard (TV Match Mode)
+  const [leaderboardOpen, setLeaderboardOpen] = useState(false);
   // Feedback Modal state
   const [activeFeedbackShooter, setActiveFeedbackShooter] = useState<Registration | null>(null);
   const [feedbackSummary, setFeedbackSummary] = useState('');
@@ -251,6 +256,15 @@ export const InstructorDashboard: React.FC = () => {
               >
                 <FileSpreadsheet size={14} />
                 <span>ייצוא תוצאות (CSV)</span>
+              </button>
+
+              {/* Live Match TV Leaderboard */}
+              <button
+                onClick={() => setLeaderboardOpen(true)}
+                className="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-sm font-bold flex items-center gap-1.5 transition-all shadow-sm"
+              >
+                <Trophy size={14} />
+                <span>לוח תוצאות חי (TV)</span>
               </button>
 
               {/* Print Summary */}
@@ -557,6 +571,13 @@ export const InstructorDashboard: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Live Match TV Leaderboard Modal */}
+      <LiveLeaderboardModal
+        isOpen={leaderboardOpen}
+        onClose={() => setLeaderboardOpen(false)}
+        training={currentTraining}
+      />
     </div>
   );
 };
