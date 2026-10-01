@@ -1,5 +1,5 @@
 # Multi-stage Dockerfile for Desert Falcon IPSC Web Application
-FROM node:22-alpine AS builder
+FROM node:22-slim AS builder
 
 WORKDIR /app
 
@@ -16,8 +16,8 @@ COPY . .
 RUN npm run build
 
 # ----------------------------------------------------
-# Production Runtime Image
-FROM node:22-alpine AS runner
+# Production Runtime Image (Debian-based for workerd glibc compatibility)
+FROM node:22-slim AS runner
 
 WORKDIR /app
 
