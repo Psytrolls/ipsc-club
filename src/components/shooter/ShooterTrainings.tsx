@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useApp } from "../../context/AppContext";
 import { TrainingSession } from "../../types";
+import { downloadIcsFile, getGoogleCalendarUrl } from "../../lib/calendar";
 import {
   Calendar,
   Clock,
@@ -11,6 +12,8 @@ import {
   ChevronLeft,
   ShieldCheck,
   X,
+  CalendarPlus,
+  ExternalLink,
 } from "lucide-react";
 import { TargetIcon } from "../common/TargetIcon";
 
@@ -182,32 +185,45 @@ export const ShooterTrainings: React.FC<ShooterTrainingsProps> = ({
                 </p>
 
                 {/* Card Actions */}
-                <div className="pt-1 flex items-center justify-between gap-2">
-                  <button
-                    onClick={() => onOpenTrainingDetails(training.id)}
-                    className="py-2.5 px-3 text-xs font-bold text-graphite-700 hover:text-graphite-900 border border-[#DFCEB0] rounded-xl hover:bg-[#F4EFE6] transition-all"
-                  >
-                    פרטים מלאים
-                  </button>
+                <div className="pt-1 flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => onOpenTrainingDetails(training.id)}
+                      className="py-2 px-3 text-xs font-bold text-graphite-700 hover:text-graphite-900 border border-[#DFCEB0] rounded-xl hover:bg-[#F4EFE6] transition-all"
+                    >
+                      פרטים
+                    </button>
+
+                    {isRegistered && (
+                      <button
+                        onClick={() => downloadIcsFile(training)}
+                        className="py-2 px-2.5 text-xs font-bold text-falcon-800 bg-falcon-50 hover:bg-falcon-100 border border-falcon-200 rounded-xl transition-all flex items-center gap-1"
+                        title="הוסף ליומן (Apple / Outlook / Google)"
+                      >
+                        <CalendarPlus size={13} />
+                        <span>ליומן</span>
+                      </button>
+                    )}
+                  </div>
 
                   {isRegistered ? (
                     <button
                       onClick={() => userReg && cancelRegistration(userReg.id)}
-                      className="py-2.5 px-4 text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-xl transition-all"
+                      className="py-2 px-4 text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-xl transition-all"
                     >
                       ביטול הרשמה
                     </button>
                   ) : isWaitlisted ? (
                     <button
                       onClick={() => userReg && cancelRegistration(userReg.id)}
-                      className="py-2.5 px-4 text-xs font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-xl transition-all"
+                      className="py-2 px-4 text-xs font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-xl transition-all"
                     >
                       ביטול המתנה
                     </button>
                   ) : (
                     <button
                       onClick={() => registerForTraining(training.id)}
-                      className={`py-2.5 px-5 text-xs font-bold text-white rounded-xl shadow-sm transition-all ${
+                      className={`py-2 px-4 text-xs font-bold text-white rounded-xl shadow-sm transition-all ${
                         isFull
                           ? "bg-amber-600 hover:bg-amber-700"
                           : "bg-falcon-500 hover:bg-falcon-600"
@@ -314,6 +330,33 @@ export const TrainingDetailsModal: React.FC<{
               {training.eligibilityRequirements}
             </p>
           </div>
+
+          {isRegistered && (
+            <div className="p-3 bg-falcon-50 border border-falcon-200 rounded-2xl flex items-center justify-between gap-2">
+              <span className="text-xs font-bold text-falcon-950 flex items-center gap-1.5">
+                <CalendarPlus size={16} className="text-falcon-700" />
+                <span>הוספה ליומן האישי:</span>
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => downloadIcsFile(training)}
+                  className="px-3 py-1.5 rounded-xl bg-white border border-[#DFCEB0] text-graphite-800 text-xs font-bold hover:bg-[#FAF8F5]"
+                >
+                  קובץ יומן (.ics)
+                </button>
+                <a
+                  href={getGoogleCalendarUrl(training)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3 py-1.5 rounded-xl bg-falcon-500 hover:bg-falcon-600 text-white text-xs font-bold flex items-center gap-1"
+                >
+                  <span>Google Calendar</span>
+                  <ExternalLink size={12} />
+                </a>
+              </div>
+            </div>
+          )}
 
           <div className="bg-amber-50 border border-amber-200 p-3 rounded-2xl text-xs text-amber-900">
             <strong>מדיניות תשלום וביטולים:</strong> {training.priceNote}. ניתן

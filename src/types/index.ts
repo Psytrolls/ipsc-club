@@ -24,6 +24,9 @@ export interface User {
   twoFactorEnabled?: boolean;
   mustChangePassword?: boolean;
   temporaryPassword?: string;
+  firearmLicenseExpiry?: string;
+  healthDeclarationExpiry?: string;
+  insuranceExpiry?: string;
 }
 
 export interface TrainingSession {

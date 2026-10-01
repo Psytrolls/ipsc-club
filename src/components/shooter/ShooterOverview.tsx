@@ -2,6 +2,8 @@ import React from "react";
 import { useApp } from "../../context/AppContext";
 import { ShooterTab } from "../common/BottomNav";
 import { ShooterProgress } from "./ShooterProgress";
+import { checkUserDocuments } from "../../lib/documentStatus";
+import { downloadIcsFile } from "../../lib/calendar";
 import {
   ArrowUpLeft,
   Calendar,
@@ -9,6 +11,8 @@ import {
   MapPin,
   Check,
   MessageSquare,
+  ShieldAlert,
+  CalendarPlus,
 } from "lucide-react";
 export const ShooterOverview: React.FC<{
   onSelectTab: (tab: ShooterTab) => void;
@@ -33,8 +37,27 @@ export const ShooterOverview: React.FC<{
   )[0];
   const results = getMyResults();
   const date = upcoming ? new Date(`${upcoming.session.date}T12:00:00`) : null;
+  const docCompliance = currentUser ? checkUserDocuments(currentUser) : null;
   return (
     <div className="overview-page">
+      {docCompliance?.hasExpired && (
+        <div className="p-4 bg-rose-50 border border-rose-300 rounded-3xl flex items-center justify-between gap-3 text-right shadow-sm mb-2">
+          <div className="flex items-center gap-2.5">
+            <ShieldAlert className="text-rose-600 shrink-0" size={22} />
+            <div>
+              <h4 className="font-bold text-xs text-rose-950">תשומת לב: מסמך או רישיון פג תוקף!</h4>
+              <p className="text-[11px] text-rose-800">נא לעדכן את תוקף הרישיון או הצהרת הבריאות בפרופיל האישי.</p>
+            </div>
+          </div>
+          <button
+            onClick={() => onSelectTab("profile")}
+            className="px-3.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shrink-0 shadow-sm"
+          >
+            לפרופיל
+          </button>
+        </div>
+      )}
+
       <div className="dashboard-welcome">
         <div>
           <div className="eyebrow">MY DESERT FALCON</div>

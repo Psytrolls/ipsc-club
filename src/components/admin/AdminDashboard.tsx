@@ -4,6 +4,8 @@ import { PagesEditor } from './PagesEditor';
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { TrainingSession, LeadInquiry, User, NewsArticle, LeadStatus } from '../../types';
+import { getWhatsAppUrl, createCredentialsWhatsAppMessage, createTrainingSquadWhatsAppMessage } from '../../lib/whatsapp';
+import { checkUserDocuments } from '../../lib/documentStatus';
 import {
   Shield,
   Users,
@@ -21,7 +23,10 @@ import {
   FileText,
   Lock,
   Mail,
-  Phone
+  Phone,
+  Share2,
+  Copy,
+  ShieldAlert
 } from 'lucide-react';
 
 export const AdminDashboard: React.FC = () => {
@@ -40,6 +45,7 @@ export const AdminDashboard: React.FC = () => {
     inviteUser,
     saveNewsArticle,
     deleteNewsArticle,
+    showToast,
   } = useApp();
 
   const [activeTab, setActiveTab] = useState<'leads' | 'trainings' | 'users' | 'news' | 'pages'>('leads');
@@ -345,10 +351,40 @@ export const AdminDashboard: React.FC = () => {
                       <div className="text-xs text-graphite-500">{t.location} | מדריכים: {t.instructorNames.join(', ')}</div>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold px-3 py-1 bg-white border border-[#DFCEB0] rounded-xl">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-xs font-bold px-3 py-1.5 bg-white border border-[#DFCEB0] rounded-xl">
                         נרשמו: {regList.length}/{t.maxCapacity} | ממתינים: {waitList.length}
                       </span>
+
+                      {/* WhatsApp squad roster actions */}
+                      <button
+                        onClick={() => {
+                          const text = createTrainingSquadWhatsAppMessage(t, registrations);
+                          window.open(getWhatsAppUrl('', text), '_blank');
+                        }}
+                        className="px-2.5 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-xs font-bold flex items-center gap-1"
+                        title="שתף רשימה בוואטסאפ"
+                      >
+                        <Share2 size={13} />
+                        <span>וואטסאפ</span>
+                      </button>
+
+                      <button
+                        onClick={async () => {
+                          const text = createTrainingSquadWhatsAppMessage(t, registrations);
+                          try {
+                            await navigator.clipboard.writeText(text);
+                            showToast('רשימת המשתתפים הועתקה ללוח', 'success');
+                          } catch {
+                            showToast('שגיאה בהעתקת הרשימה', 'error');
+                          }
+                        }}
+                        className="p-2 rounded-xl bg-white border border-[#DFCEB0] text-graphite-700 hover:text-falcon-700"
+                        title="העתק רשימת משתתפים"
+                      >
+                        <Copy size={14} />
+                      </button>
+
                       <button
                         onClick={() => {
                           setEditingTraining(t);
@@ -390,51 +426,82 @@ export const AdminDashboard: React.FC = () => {
           </div>
 
           <div className="space-y-3">
-            {users.map(u => (
-              <div key={u.id} className="p-4 rounded-2xl border border-[#EFE6D5] bg-[#FAF8F5] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-sm text-graphite-900">{u.fullName}</span>
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                      u.membershipStatus === 'active' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
-                    }`}>
-                      {u.membershipStatus === 'active' ? 'חבר פעיל' : 'מושהה'}
-                    </span>
-                    <span className="text-[10px] font-mono text-falcon-800 bg-[#E8DCB8] px-2 py-0.5 rounded-full">
-                      {u.role === 'admin' ? 'מנהל' : u.role === 'instructor' ? 'מדריך' : 'יורה'}
-                    </span>
+            {users.map(u => {
+              const docCompliance = checkUserDocuments(u);
+
+              return (
+                <div key={u.id} className="p-4 rounded-2xl border border-[#EFE6D5] bg-[#FAF8F5] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="space-y-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-bold text-sm text-graphite-900">{u.fullName}</span>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                        u.membershipStatus === 'active' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
+                      }`}>
+                        {u.membershipStatus === 'active' ? 'חבר פעיל' : 'מושהה'}
+                      </span>
+                      <span className="text-[10px] font-mono text-falcon-800 bg-[#E8DCB8] px-2 py-0.5 rounded-full">
+                        {u.role === 'admin' ? 'מנהל' : u.role === 'instructor' ? 'מדריך' : 'יורה'}
+                      </span>
+
+                      {/* Safety Document Compliance Badges */}
+                      {docCompliance.hasExpired && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 border border-rose-300 flex items-center gap-1">
+                          <ShieldAlert size={12} />
+                          <span>מסמך פג תוקף</span>
+                        </span>
+                      )}
+                      {!docCompliance.hasExpired && docCompliance.hasExpiringSoon && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300">
+                          תוקף פג בקרוב
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-xs text-graphite-500 flex items-center gap-3">
+                      {u.email && <span>דוא״ל: {u.email}</span>}
+                      <span>טלפון: {u.phone}</span>
+                      {u.division && <span>מחלקה: {u.division}</span>}
+                      {u.isSuperAdmin && <strong>מנהל על — חשבון מוגן</strong>}
+                    </div>
                   </div>
-                  <div className="text-xs text-graphite-500 flex items-center gap-3">
-                    <span>דוא״ל: {u.email}</span>
-                    <span>טלפון: {u.phone}</span>{u.isSuperAdmin&&<strong>מנהל על — חשבון מוגן</strong>}
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    {/* WhatsApp Quick Message Button */}
+                    <a
+                      href={getWhatsAppUrl(u.phone, createCredentialsWhatsAppMessage(u))}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-2.5 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-xs font-bold flex items-center gap-1"
+                      title="שלח פרטים בוואטסאפ"
+                    >
+                      <Share2 size={13} />
+                      <span>וואטסאפ</span>
+                    </a>
+
+                    <button className="button-small" disabled={u.isSuperAdmin} onClick={()=>{if(window.confirm('יש לאמת את זהות המשתמש. יצירת קישור שחזור מחליפה את מפתחות הכניסה הקיימים לאחר הפעלה. להמשיך?'))inviteUser(u.id,true);}}>הפעלה / שחזור</button>
+                    <button disabled={u.isSuperAdmin}
+                      onClick={() => {
+                        const nextStatus = u.membershipStatus === 'active' ? 'suspended' : 'active';
+                        saveUser({ ...u, membershipStatus: nextStatus });
+                      }}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all ${
+                        u.membershipStatus === 'active'
+                          ? 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100'
+                          : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                      }`}
+                    >
+                      {u.membershipStatus === 'active' ? 'השהה חברות' : 'הפעל חברות'}
+                    </button>
+
+                    <button
+                      disabled={u.isSuperAdmin&&u.id!==currentUser?.id} aria-label={`עריכת משתמש ${u.fullName}`} onClick={() => setEditingUser(u)}
+                      className="p-2 rounded-xl bg-white border border-[#DFCEB0] text-graphite-700 hover:text-falcon-700"
+                    >
+                      <Edit2 size={14} />
+                    </button>
                   </div>
                 </div>
-
-                <div className="flex flex-wrap items-center gap-2">
-                  <button className="button-small" disabled={u.isSuperAdmin} onClick={()=>{if(window.confirm('יש לאמת את זהות המשתמש. יצירת קישור שחזור מחליפה את מפתחות הכניסה הקיימים לאחר הפעלה. להמשיך?'))inviteUser(u.id,true);}}>הפעלה / שחזור</button>
-                  <button disabled={u.isSuperAdmin}
-                    onClick={() => {
-                      const nextStatus = u.membershipStatus === 'active' ? 'suspended' : 'active';
-                      saveUser({ ...u, membershipStatus: nextStatus });
-                    }}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all ${
-                      u.membershipStatus === 'active'
-                        ? 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100'
-                        : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
-                    }`}
-                  >
-                    {u.membershipStatus === 'active' ? 'השהה חברות' : 'הפעל חברות'}
-                  </button>
-
-                  <button
-                    disabled={u.isSuperAdmin&&u.id!==currentUser?.id} aria-label={`עריכת משתמש ${u.fullName}`} onClick={() => setEditingUser(u)}
-                    className="p-2 rounded-xl bg-white border border-[#DFCEB0] text-graphite-700 hover:text-falcon-700"
-                  >
-                    <Edit2 size={14} />
-                  </button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}

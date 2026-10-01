@@ -3,6 +3,9 @@ import {ScoreEntry} from './ScoreEntry';
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { TrainingSession, Registration, ExerciseTemplate } from '../../types';
+import { getWhatsAppUrl, createTrainingSquadWhatsAppMessage } from '../../lib/whatsapp';
+import { exportResultsToCsv, printTrainingSummary } from '../../lib/exportResults';
+import { checkUserDocuments } from '../../lib/documentStatus';
 import {
   Users,
   Calendar,
@@ -19,21 +22,29 @@ import {
   Crosshair,
   TrendingUp,
   FileEdit,
-  DollarSign
+  DollarSign,
+  Share2,
+  Copy,
+  FileSpreadsheet,
+  Printer,
+  ShieldAlert
 } from 'lucide-react';
 import { TargetIcon } from '../common/TargetIcon';
 
 export const InstructorDashboard: React.FC = () => {
   const {
     currentUser,
+    users,
     trainings,
     registrations,
     exerciseTemplates,
+    exerciseResults,
     updateAttendance,
     addExerciseResult,
     saveFeedback,
     focusItems,
     updateFocusItemStatus,
+    showToast,
   } = useApp();
 
   // Selected training for active management
@@ -180,6 +191,70 @@ export const InstructorDashboard: React.FC = () => {
           </div>
 
           <ExercisePlanner training={currentTraining}/>
+
+          {/* Training Management Quick Actions Toolbar */}
+          <div className="bg-white rounded-3xl border border-[#EFE6D5] p-4 shadow-sm flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-graphite-700">פעולות מהירות למדריך:</span>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              {/* WhatsApp Squad Share */}
+              <button
+                onClick={() => {
+                  const text = createTrainingSquadWhatsAppMessage(currentTraining, registrations);
+                  window.open(getWhatsAppUrl('', text), '_blank');
+                }}
+                className="px-3.5 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm"
+              >
+                <Share2 size={14} />
+                <span>שיתוף רשימה בוואטסאפ</span>
+              </button>
+
+              {/* Copy Roster */}
+              <button
+                onClick={async () => {
+                  const text = createTrainingSquadWhatsAppMessage(currentTraining, registrations);
+                  try {
+                    await navigator.clipboard.writeText(text);
+                    showToast('רשימת המשתתפים הועתקה ללוח', 'success');
+                  } catch {
+                    showToast('שגיאה בהעתקת הרשימה', 'error');
+                  }
+                }}
+                className="px-3.5 py-2 rounded-xl bg-[#FAF8F5] hover:bg-[#F4EFE6] text-graphite-800 border border-[#DFCEB0] text-xs font-bold flex items-center gap-1.5 transition-all"
+              >
+                <Copy size={14} />
+                <span>העתקת רשימה</span>
+              </button>
+
+              {/* CSV Export */}
+              <button
+                onClick={() => {
+                  const currentResults = exerciseResults.filter(r => r.trainingId === currentTraining.id);
+                  exportResultsToCsv(currentTraining, currentResults);
+                  showToast('קובץ CSV הורד בהצלחה', 'success');
+                }}
+                className="px-3.5 py-2 rounded-xl bg-[#FAF8F5] hover:bg-[#F4EFE6] text-graphite-800 border border-[#DFCEB0] text-xs font-bold flex items-center gap-1.5 transition-all"
+              >
+                <FileSpreadsheet size={14} />
+                <span>ייצוא תוצאות (CSV)</span>
+              </button>
+
+              {/* Print Summary */}
+              <button
+                onClick={() => {
+                  const currentResults = exerciseResults.filter(r => r.trainingId === currentTraining.id);
+                  printTrainingSummary(currentTraining, registrations, currentResults);
+                }}
+                className="px-3.5 py-2 rounded-xl bg-graphite-900 hover:bg-graphite-800 text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm"
+              >
+                <Printer size={14} />
+                <span>פרוטוקול / הדפסה</span>
+              </button>
+            </div>
+          </div>
+
           {/* Attendance & Scoring Table */}
           <div className="bg-white rounded-3xl border border-[#EFE6D5] p-5 shadow-sm space-y-4">
             <div className="flex items-center justify-between">
@@ -202,6 +277,10 @@ export const InstructorDashboard: React.FC = () => {
                   const isAttended = reg.attendance === 'attended';
                   const isAbsent = reg.attendance === 'absent';
 
+                  // Shooter document compliance check
+                  const shooterUser = users.find(u => u.id === reg.userId);
+                  const docCompliance = shooterUser ? checkUserDocuments(shooterUser) : null;
+
                   // Shooter open focus item to keep instructor informed!
                   const shooterFocus = focusItems.filter(f => f.userId === reg.userId && f.status !== 'completed');
 
@@ -219,12 +298,25 @@ export const InstructorDashboard: React.FC = () => {
                       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
                         {/* Shooter Info & Previous Focus Notice */}
                         <div className="space-y-1">
-                          <div className="flex items-center gap-2">
+                          <div className="flex flex-wrap items-center gap-2">
                             <span className="w-6 h-6 rounded-full bg-graphite-800 text-white flex items-center justify-center text-xs font-bold font-mono">
                               {idx + 1}
                             </span>
                             <span className="font-bold text-sm text-graphite-900">{reg.userName}</span>
                             <span className="text-xs text-graphite-500 font-mono">({reg.userPhone})</span>
+
+                            {/* Compliance Badges on Range */}
+                            {docCompliance?.hasExpired && (
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 border border-rose-300 flex items-center gap-1">
+                                <ShieldAlert size={12} />
+                                <span>מסמך פג תוקף!</span>
+                              </span>
+                            )}
+                            {!docCompliance?.hasExpired && docCompliance?.hasExpiringSoon && (
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300">
+                                פג בקרוב
+                              </span>
+                            )}
                           </div>
 
                           {shooterFocus.length > 0 && (

@@ -15,6 +15,8 @@ export const pagesSchema=z.object({id:z.literal('public'),heroTitle:text(150).mi
 export const leadUpdate=z.object({status:z.enum(['new','in_progress','pending_docs','approved','rejected','closed']),internalNotes:text(4000).optional(),assignedTo:id.optional()});
 
 const birthDate=z.union([z.literal(''),z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine(v=>{const d=new Date(v);return Number.isFinite(d.getTime())&&d.toISOString().slice(0,10)===v&&v>='1900-01-01'&&d<=new Date();})]);
-export const profileSchema=z.object({birthDate:birthDate.optional(),shooterNumber:text(40).regex(/^[A-Za-z0-9-]*$/).optional(),division:z.enum(['','Open','Standard','Classic','Production','Production Optics','Optics','Revolver']).optional(),classification:z.enum(['','U','D','C','B','A','M','GM']).optional()});
+const validDate=z.union([z.literal(''),z.string().regex(/^\d{4}-\d{2}-\d{2}$/)]);
+export const profileSchema=z.object({birthDate:birthDate.optional(),shooterNumber:text(40).regex(/^[A-Za-z0-9-]*$/).optional(),division:z.enum(['','Open','Standard','Classic','Production','Production Optics','Optics','Revolver']).optional(),classification:z.enum(['','U','D','C','B','A','M','GM']).optional(),firearmLicenseExpiry:validDate.optional(),healthDeclarationExpiry:validDate.optional(),insuranceExpiry:validDate.optional()});
 
 export const userSchema=baseUserSchema.extend({...profileSchema.shape,username:z.string().min(3).max(60).regex(/^[A-Za-z0-9._@+-]+$/).optional()});
+

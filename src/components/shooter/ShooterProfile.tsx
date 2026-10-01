@@ -18,8 +18,24 @@ import {
 } from "lucide-react";
 
 export const ShooterProfile: React.FC = () => {
-  const { currentUser, logoutUser,saveProfile,showToast,refresh } = useApp();
- const [draft,setDraft]=useState<Partial<ClubUser>>({});const [busy,setBusy]=useState(false);const [oldPassword,setOldPassword]=useState(''),[newPassword,setNewPassword]=useState('');useEffect(()=>{if(currentUser)setDraft({birthDate:currentUser.birthDate||'',shooterNumber:currentUser.shooterNumber||'',division:currentUser.division||'',classification:currentUser.classification||''});},[currentUser?.id]);
+  const { currentUser, logoutUser, saveProfile, showToast, refresh } = useApp();
+  const [draft, setDraft] = useState<Partial<ClubUser>>({});
+  const [busy, setBusy] = useState(false);
+  const [oldPassword, setOldPassword] = useState(''), [newPassword, setNewPassword] = useState('');
+
+  useEffect(() => {
+    if (currentUser) {
+      setDraft({
+        birthDate: currentUser.birthDate || '',
+        shooterNumber: currentUser.shooterNumber || '',
+        division: currentUser.division || '',
+        classification: currentUser.classification || '',
+        firearmLicenseExpiry: currentUser.firearmLicenseExpiry || '',
+        healthDeclarationExpiry: currentUser.healthDeclarationExpiry || '',
+        insuranceExpiry: currentUser.insuranceExpiry || '',
+      });
+    }
+  }, [currentUser?.id, currentUser?.avatarVersion, currentUser?.birthDate, currentUser?.shooterNumber, currentUser?.division, currentUser?.classification, currentUser?.firearmLicenseExpiry, currentUser?.healthDeclarationExpiry, currentUser?.insuranceExpiry]);
 
   if (!currentUser) return null;
 
