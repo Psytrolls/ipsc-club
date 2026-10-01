@@ -1,0 +1,52 @@
+{
+  "name": "desert-falcon-ipsc",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "npm run build && npm start",
+    "build": "tsc && vite build && node scripts/build-hosted.mjs",
+    "preview": "wrangler dev --config dist/server/wrangler.json",
+    "start": "node server/standalone-server.mjs",
+    "serve": "node server/standalone-server.mjs",
+    "init-admin": "node scripts/init-admin.mjs",
+    "test": "node --test server/*.test.mjs",
+    "db:generate": "drizzle-kit generate"
+  },
+  "dependencies": {
+    "@simplewebauthn/browser": "^14.0.0",
+    "@simplewebauthn/server": "^14.0.3",
+    "bcryptjs": "^3.0.3",
+    "clsx": "^2.1.1",
+    "cookie-parser": "^1.4.7",
+    "dotenv": "^18.0.5",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.7.0",
+    "helmet": "^8.3.0",
+    "lucide-react": "^0.475.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "recharts": "^2.15.1",
+    "tailwind-merge": "^2.6.0",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261001.1",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "@vitejs/plugin-react": "^4.3.4",
+    "autoprefixer": "^10.4.20",
+    "drizzle-kit": "^0.31.11",
+    "drizzle-orm": "^0.45.3",
+    "esbuild": "^0.28.2",
+    "miniflare": "^4.20260730.0",
+    "postcss": "^8.5.2",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5.7.3",
+    "vite": "^6.1.0",
+    "wrangler": "^4.145.0"
+  },
+  "engines": {
+    "node": ">=22.13.0"
+  }
+}

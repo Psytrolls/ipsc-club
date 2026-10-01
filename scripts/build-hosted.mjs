@@ -1,0 +1,11 @@
+import {build} from 'esbuild';import {mkdir,writeFile,cp} from 'node:fs/promises';
+await mkdir('dist/server',{recursive:true});await mkdir('dist/.openai',{recursive:true});
+await build({entryPoints:['worker/index.mjs'],outfile:'dist/server/index.js',bundle:true,format:'esm',platform:'node',target:'es2022',external:['cloudflare:*','node:*'],define:{'process.env.NODE_ENV':'"production"'},minify:false,banner:{js:"import { createRequire } from 'node:module'; const require = createRequire('file:///worker/index.js');"}});
+await writeFile('dist/server/wrangler.json',JSON.stringify({name:'desert-falcon',main:'index.js',compatibility_date:'2026-08-01',compatibility_flags:['nodejs_compat','enable_nodejs_http_server_modules'],assets:{directory:'../client',binding:'ASSETS',not_found_handling:'single-page-application',run_worker_first:true},r2_buckets:[{binding:'BUCKET',bucket_name:'desert-falcon-photos'}],d1_databases:[{binding:'DB',database_name:'desert-falcon',database_id:'00000000-0000-4000-8000-000000000000',migrations_dir:'../../drizzle'}]},null,2));
+import { existsSync } from 'node:fs';
+if (existsSync('.openai/hosting.json')) {
+  await cp('.openai/hosting.json','dist/.openai/hosting.json');
+}
+if (existsSync('drizzle')) {
+  await cp('drizzle','dist/.openai/drizzle',{recursive:true});
+}
