@@ -26,19 +26,16 @@ button{transition:background-color .16s,color .16s,border-color .16s}
 button:disabled{cursor:not-allowed}
 button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid #9c704c;outline-offset:3px}
 .eyebrow{font-size:13px;letter-spacing:.05em;color:var(--sand)}
-.falcon-header{background:rgba(250,248,245,.97);border-color:var(--line);backdrop-filter:blur(10px)}
-.header-inner{display:grid;grid-template-columns:1fr auto 1fr;min-height:96px;gap:20px;direction:ltr}
-.header-menu{justify-self:start;color:var(--ink);border-radius:50%}
-.header-actions{justify-self:end;direction:rtl;gap:10px}
-.brand-button{justify-self:center}
-.falcon-brand{gap:14px}
-.falcon-brand .official-club-logo{width:68px;height:68px;object-fit:cover}
-.falcon-brand strong{font-size:22px;font-weight:600;letter-spacing:.09em;color:var(--ink)}
+.falcon-header{background:rgba(250,248,245,.97);border-color:var(--line);backdrop-filter:blur(10px);position:sticky;top:0;z-index:50}
+.header-inner{display:flex;align-items:center;justify-content:space-between;min-height:92px;gap:20px;direction:rtl}
+.brand-button{display:inline-flex;align-items:center;background:none;border:0;padding:0;cursor:pointer;flex-shrink:0}
+.falcon-brand{display:flex;align-items:center;gap:14px}
+.falcon-brand .official-club-logo{width:56px;height:56px;object-fit:contain;border-radius:50%;flex-shrink:0}
+.falcon-brand strong{font-size:20px;font-weight:700;letter-spacing:.08em;color:var(--ink)}
 .falcon-brand span{font-size:12px;color:var(--muted)}
-.button-small{border:1px solid #af947d;border-radius:22px;min-height:44px;font-size:14px;padding:9px 20px;background:transparent}
-.header-account{display:flex;align-items:center;gap:10px;min-height:44px;border:1px solid var(--line);border-radius:28px;padding:5px 14px 5px 5px;font-size:14px}
-.header-account img{width:36px;height:36px;border-radius:50%;object-fit:cover}
-.desktop-links{justify-content:center;gap:42px;padding:10px 24px 14px;font-size:14px}
+.header-actions{display:flex;align-items:center;gap:12px;flex-shrink:0}
+.button-small{border:1px solid #af947d;border-radius:22px;min-height:44px;font-size:14px;padding:9px 20px;background:transparent;display:inline-flex;align-items:center;gap:8px}
+.desktop-links{display:flex;align-items:center;justify-content:center;gap:36px;padding:10px 24px;font-size:15px;margin-inline:auto}
 .desktop-links button{min-height:32px}
 .desktop-links button[aria-current]{color:var(--sand)}
 .mobile-links{padding-block:12px 24px;max-height:calc(100dvh - 100px);overflow:auto;gap:0}
@@ -217,11 +214,11 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 @media(max-width:1000px){.header-inner{gap:12px}.falcon-brand strong{font-size:19px}.about-layout{gap:30px}.value-list{grid-template-columns:1fr}.value-list>div{flex-direction:row}.hero-layout{padding-top:50px}.workspace-dashboard{width:min(100%,1180px)}}
 @media(max-width:760px){
  .falcon-container{width:calc(100% - 32px)}
- .header-inner{min-height:78px;gap:8px;grid-template-columns:40px 1fr 62px}
+ .header-inner{min-height:78px;gap:8px;display:flex;justify-content:space-between;align-items:center}
  .brand-button{max-width:100%;min-width:0}.falcon-brand{gap:8px;justify-content:center}
  .falcon-brand .official-club-logo{width:46px;height:46px}
- .falcon-brand strong{font-size:clamp(12px,3.5vw,19px);letter-spacing:.065em}
- .falcon-brand span{display:none}.header-actions{gap:0}.header-actions .button-small{padding:6px 11px;font-size:14px;gap:5px}
+ .falcon-brand strong{font-size:clamp(14px,3.8vw,19px);letter-spacing:.065em}
+ .falcon-brand span{display:none}.header-actions{gap:8px}.header-actions .button-small{padding:6px 12px;font-size:13px;gap:5px}
  .header-actions .button-small svg{display:none}.header-account{padding:4px;border:1px solid #c6b09b;min-width:44px;justify-content:center}.header-account>span{display:none}.header-account img{width:34px;height:34px}
  .desktop-links{display:none}.mobile-links{max-height:calc(100dvh - 78px)}
  .falcon-hero{min-height:550px}.hero-layout{padding:32px 0 125px;display:block;gap:0}.hero-copy{padding:0}.hero-copy h1{font-size:clamp(34px,9vw,60px);margin:14px 0}.hero-copy .hero-motto{font-size:20px;gap:12px}.hero-copy>.eyebrow{font-size:12px}
@@ -243,7 +240,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
  .demo-dialog,.article-dialog{padding:22px;max-width:calc(100vw - 24px);border-radius:18px}.demo-dialog h2,.article-dialog h2{font-size:27px}.demo-brand .official-club-logo{width:64px;height:64px}.demo-brand .falcon-brand strong{font-size:18px}.demo-brand .falcon-brand span{display:block;font-size:12px}
  .falcon-app .fixed.inset-0[role=dialog]{padding:12px}.falcon-app .fixed.inset-0[role=dialog]>.bg-white{max-height:94dvh}.falcon-app .fixed.inset-0[role=dialog] .p-6{padding:20px}
 }
-@media(max-width:360px){.header-inner{grid-template-columns:36px 1fr 54px;gap:4px}.falcon-container{width:calc(100% - 24px)}.falcon-brand .official-club-logo{width:40px;height:40px}.falcon-brand strong{font-size:12px}.header-actions .button-small{padding:7px 9px;font-size:14px}.hero-copy h1{font-size:33px}.hero-copy .hero-motto{font-size:18px;gap:9px}.hero-actions button{font-size:13px;padding:11px 7px}.hero-actions button svg{display:none}.stat-strip span{font-size:13px}.workspace-dashboard .grid.grid-cols-2{grid-template-columns:1fr}}
+@media(max-width:360px){.header-inner{gap:4px;display:flex;justify-content:space-between;align-items:center}.falcon-container{width:calc(100% - 24px)}.falcon-brand .official-club-logo{width:40px;height:40px}.falcon-brand strong{font-size:12px}.header-actions .button-small{padding:7px 9px;font-size:14px}.hero-copy h1{font-size:33px}.hero-copy .hero-motto{font-size:18px;gap:9px}.hero-actions button{font-size:13px;padding:11px 7px}.hero-actions button svg{display:none}.stat-strip span{font-size:13px}.workspace-dashboard .grid.grid-cols-2{grid-template-columns:1fr}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
 .hero-intro>strong{display:block;font-size:20px;margin-bottom:4px;font-weight:500}
 .falcon-footer .footer-cta .eyebrow{color:var(--sand)}
