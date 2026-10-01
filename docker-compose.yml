@@ -7,7 +7,7 @@ services:
     container_name: desert-falcon-ipsc
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "3080:3000"
     environment:
       - NODE_ENV=production
       - APP_ORIGIN=https://ipsc.magavnegev.co.il
