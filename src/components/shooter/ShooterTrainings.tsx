@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useApp } from "../../context/AppContext";
 import { TrainingSession } from "../../types";
 import { downloadIcsFile, getGoogleCalendarUrl } from "../../lib/calendar";
+import { getWazeNavigationUrl, getGoogleMapsNavigationUrl } from "../../lib/navigation";
 import {
   Calendar,
   Clock,
@@ -14,6 +15,7 @@ import {
   X,
   CalendarPlus,
   ExternalLink,
+  Navigation,
 } from "lucide-react";
 import { TargetIcon } from "../common/TargetIcon";
 
@@ -166,11 +168,23 @@ export const ShooterTrainings: React.FC<ShooterTrainingsProps> = ({
                       {training.startTime} - {training.endTime}
                     </span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <MapPin size={14} className="text-falcon-600" />
-                    <span className="truncate">
-                      {training.location.split(",")[0]}
-                    </span>
+                  <div className="flex items-center justify-between gap-1">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <MapPin size={14} className="text-falcon-600 shrink-0" />
+                      <span className="truncate font-semibold">
+                        {training.location || 'מטווח נץ המדבר'}
+                      </span>
+                    </div>
+                    <a
+                      href={training.locationMapUrl || getWazeNavigationUrl(training.location)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-[11px] font-bold text-sky-700 bg-sky-50 px-2 py-0.5 rounded-lg border border-sky-200 hover:bg-sky-100 shrink-0"
+                      title="ניווט ב-Waze"
+                    >
+                      <Navigation size={11} />
+                      <span>Waze</span>
+                    </a>
                   </div>
                   <div className="flex items-center gap-2">
                     <Users size={14} className="text-falcon-600" />
@@ -302,10 +316,19 @@ export const TrainingDetailsModal: React.FC<{
               </span>
             </div>
             <div>
-              <span className="text-graphite-500 block">מיקום:</span>
-              <span className="font-bold text-graphite-900">
-                {training.location}
+              <span className="text-graphite-500 block mb-0.5">מיקום:</span>
+              <span className="font-bold text-graphite-900 block mb-1">
+                {training.location || 'מטווח נץ המדבר, מתחם מול 7, שדרות'}
               </span>
+              <a
+                href={training.locationMapUrl || getWazeNavigationUrl(training.location)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-[11px] font-bold text-sky-700 bg-sky-50 hover:bg-sky-100 px-2 py-0.5 rounded-lg border border-sky-200"
+              >
+                <Navigation size={11} />
+                <span>נווט ב-Waze</span>
+              </a>
             </div>
             <div>
               <span className="text-graphite-500 block">מדריך אחראי:</span>

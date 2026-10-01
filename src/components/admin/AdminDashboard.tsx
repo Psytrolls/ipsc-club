@@ -6,6 +6,7 @@ import { useApp } from '../../context/AppContext';
 import { TrainingSession, LeadInquiry, User, NewsArticle, LeadStatus } from '../../types';
 import { getWhatsAppUrl, createCredentialsWhatsAppMessage, createTrainingSquadWhatsAppMessage } from '../../lib/whatsapp';
 import { checkUserDocuments } from '../../lib/documentStatus';
+import { DEFAULT_RANGE_LOCATION, DEFAULT_WAZE_URL, getWazeNavigationUrl } from '../../lib/navigation';
 import {
   Shield,
   Users,
@@ -26,7 +27,9 @@ import {
   Phone,
   Share2,
   Copy,
-  ShieldAlert
+  ShieldAlert,
+  MapPin,
+  Navigation
 } from 'lucide-react';
 
 export const AdminDashboard: React.FC = () => {
@@ -96,7 +99,8 @@ export const AdminDashboard: React.FC = () => {
       date: new Date(Date.now()+7*86400000).toISOString().slice(0,10),
       startTime: '18:00',
       endTime: '21:00',
-      location: 'מגרש הדרומי',
+      location: DEFAULT_RANGE_LOCATION,
+      locationMapUrl: DEFAULT_WAZE_URL,
       instructorIds: [],
       instructorNames: [],
       maxCapacity: 12,
@@ -619,12 +623,37 @@ export const AdminDashboard: React.FC = () => {
               </div>
 
               <div>
-                <label className="block font-bold mb-1">מיקום במטווח:</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="font-bold">מיקום במטווח:</label>
+                  <button
+                    type="button"
+                    onClick={() => setEditingTraining({
+                      ...editingTraining,
+                      location: DEFAULT_RANGE_LOCATION,
+                      locationMapUrl: DEFAULT_WAZE_URL,
+                    })}
+                    className="text-[11px] text-falcon-700 hover:text-falcon-900 font-bold underline"
+                  >
+                    הגדר מטווח נץ המדבר (שדרות)
+                  </button>
+                </div>
                 <input
                   type="text"
                   value={editingTraining.location}
                   onChange={e => setEditingTraining({ ...editingTraining, location: e.target.value })}
                   className="w-full p-2.5 rounded-xl border border-[#DFCEB0]"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold mb-1">קישור ניווט Waze / מפות (אופציונלי):</label>
+                <input
+                  type="url"
+                  dir="ltr"
+                  placeholder="https://waze.com/ul?q=..."
+                  value={editingTraining.locationMapUrl || ''}
+                  onChange={e => setEditingTraining({ ...editingTraining, locationMapUrl: e.target.value })}
+                  className="w-full p-2.5 rounded-xl border border-[#DFCEB0] font-mono text-[11px]"
                 />
               </div>
 

@@ -4,6 +4,7 @@ import { ShooterTab } from "../common/BottomNav";
 import { ShooterProgress } from "./ShooterProgress";
 import { checkUserDocuments } from "../../lib/documentStatus";
 import { downloadIcsFile } from "../../lib/calendar";
+import { getWazeNavigationUrl } from "../../lib/navigation";
 import {
   ArrowUpLeft,
   Calendar,
@@ -13,6 +14,7 @@ import {
   MessageSquare,
   ShieldAlert,
   CalendarPlus,
+  Navigation,
 } from "lucide-react";
 export const ShooterOverview: React.FC<{
   onSelectTab: (tab: ShooterTab) => void;
@@ -121,9 +123,19 @@ export const ShooterOverview: React.FC<{
                     {upcoming.session.startTime}–{upcoming.session.endTime}
                   </b>
                 </span>
-                <span>
+                <span className="flex items-center gap-1.5 flex-wrap">
                   <MapPin size={16} />
-                  {upcoming.session.location}
+                  <span>{upcoming.session.location || 'מטווח נץ המדבר'}</span>
+                  <a
+                    href={upcoming.session.locationMapUrl || getWazeNavigationUrl(upcoming.session.location)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-sky-700 bg-sky-50 hover:bg-sky-100 px-2 py-0.5 rounded-lg border border-sky-200"
+                    title="ניווט ב-Waze"
+                  >
+                    <Navigation size={11} />
+                    <span>Waze</span>
+                  </a>
                 </span>
               </div>
               <button

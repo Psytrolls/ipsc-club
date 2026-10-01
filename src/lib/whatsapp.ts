@@ -69,7 +69,8 @@ export function createTrainingSquadWhatsAppMessage(
 ━━━━━━━━━━━━━━━━━━━━
 📅 *תאריך:* ${training.date}
 ⏰ *שעות:* ${training.startTime} - ${training.endTime}
-📍 *מיקום:* ${training.location}
+📍 *מיקום:* ${training.location || 'מטווח נץ המדבר, מתחם מול 7, שדרות'}
+🚗 *ניווט ב-Waze:* https://waze.com/ul?q=%D7%9E%D7%98%D7%95%D7%95%D7%97+%D7%A0%D7%A5+%D7%94%D7%9E%D7%93%D7%91%D7%A8+%D7%A9%D7%93%D7%A8%D7%95%D7%AA&navigate=yes
 👨‍🏫 *מדריכים:* ${training.instructorNames.join(', ') || 'מדריכי המועדון'}
 ━━━━━━━━━━━━━━━━━━━━
 
