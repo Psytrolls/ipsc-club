@@ -22,6 +22,7 @@ export function invitation(u,recovery=false,ownerRecovery=false){return tx(()=>{
 export const defaultPages={id:'public',heroTitle:'דיוק. קהילה.',heroAccent:'דרך להתקדם.',heroBody:'ברוכים הבאים לנץ המדבר. מועדון ירי מעשי שבו כל אימון הוא עוד צעד קדימה — יחד, בקצב שלכם.',aboutTitle:'הרבה מעבר לאימון במטווח.',aboutBody:'נץ המדבר מחבר בין אהבה לספורט הירי המעשי, הדרכה אישית וקהילה. מקום ללמוד, לשפר ביצועים ולבנות ביטחון — אימון אחרי אימון.',sportTitle:'תנועה. ריכוז. ירי מעשי.',sportBody:'הכירו את IPSC — ענף ספורט המשלב דיוק, כוח ומהירות. ההתחלה שלכם היא קורס והדרכה מקצועית.'};
 export function seed(){
  for(const reference of references){const existing=get('templates',reference.id);if(!existing)put('templates',reference);else if(!existing.diagramUrl&&reference.diagramUrl)put('templates',{...existing,diagramUrl:reference.diagramUrl});}
+ for(const trn of all('trainings')){if(trn.location==='מגרש הדרומי'||!trn.location){put('trainings',{...trn,location:'מטווח נץ המדבר, מתחם מול 7, שדרות',locationMapUrl:trn.locationMapUrl||'https://waze.com/ul?q=%D7%9E%D7%98%D7%95%D7%95%D7%97+%D7%A0%D7%A5+%D7%94%D7%9E%D7%93%D7%91%D7%A8+%D7%A9%D7%93%D7%A8%D7%95%D7%AA&navigate=yes'});}}
  const pages=get('pages','public');
  if(!pages)put('pages',defaultPages);
  else {

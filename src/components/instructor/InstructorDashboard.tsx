@@ -6,6 +6,7 @@ import { TrainingSession, Registration, ExerciseTemplate } from '../../types';
 import { getWhatsAppUrl, createTrainingSquadWhatsAppMessage } from '../../lib/whatsapp';
 import { exportResultsToCsv, printTrainingSummary } from '../../lib/exportResults';
 import { checkUserDocuments } from '../../lib/documentStatus';
+import { getWazeNavigationUrl } from '../../lib/navigation';
 import {
   Users,
   Calendar,
@@ -27,7 +28,8 @@ import {
   Copy,
   FileSpreadsheet,
   Printer,
-  ShieldAlert
+  ShieldAlert,
+  Navigation
 } from 'lucide-react';
 import { TargetIcon } from '../common/TargetIcon';
 
@@ -178,7 +180,17 @@ export const InstructorDashboard: React.FC = () => {
               <div className="flex flex-wrap items-center gap-4 text-xs text-graphite-300 mt-1">
                 <span className="flex items-center gap-1"><Calendar size={13} className="text-falcon-400" /> {currentTraining.date}</span>
                 <span className="flex items-center gap-1"><Clock size={13} className="text-falcon-400" /> {currentTraining.startTime} - {currentTraining.endTime}</span>
-                <span className="flex items-center gap-1"><MapPin size={13} className="text-falcon-400" /> {currentTraining.location}</span>
+                <a
+                  href={currentTraining.locationMapUrl || getWazeNavigationUrl(currentTraining.location)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1 text-falcon-300 hover:text-white underline font-semibold transition-colors"
+                  title="פתיחה בניווט Waze"
+                >
+                  <MapPin size={13} className="text-falcon-400" />
+                  <span>{currentTraining.location || 'מטווח נץ המדבר'}</span>
+                  <Navigation size={11} className="text-falcon-400" />
+                </a>
               </div>
             </div>
 
