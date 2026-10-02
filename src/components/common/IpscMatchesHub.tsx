@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { IPSCMatch, getStoredMatches, getMatchStatusMeta, MatchPodiumEntry } from '../../lib/ipscMatches';
+import { IPSCMatch, getStoredMatches, getMatchStatusMeta, MatchPodiumEntry, syncLiveMatchesFromEOS } from '../../lib/ipscMatches';
 import { getWazeNavigationUrl } from '../../lib/navigation';
 import {
   Trophy,
@@ -17,7 +17,8 @@ import {
   ChevronDown,
   ChevronUp,
   Flame,
-  Radio
+  Radio,
+  RotateCw
 } from 'lucide-react';
 
 interface IpscMatchesHubProps {
@@ -26,9 +27,24 @@ interface IpscMatchesHubProps {
 }
 
 export const IpscMatchesHub: React.FC<IpscMatchesHubProps> = ({ compact = false }) => {
-  const [matches] = useState<IPSCMatch[]>(getStoredMatches());
+  const [matches, setMatches] = useState<IPSCMatch[]>(getStoredMatches());
   const [filter, setFilter] = useState<'all' | 'open' | 'upcoming' | 'completed'>('all');
   const [expandedPodiumId, setExpandedPodiumId] = useState<string | null>(null);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncNotice, setSyncNotice] = useState<string | null>(null);
+
+  const handleSync = async () => {
+    setIsSyncing(true);
+    setSyncNotice(null);
+    try {
+      const res = await syncLiveMatchesFromEOS();
+      setMatches(res.matches);
+      setSyncNotice('הסנכרון מ-End of Scoring הושלם בהצלחה! לוח התחרויות מעודכן.');
+      setTimeout(() => setSyncNotice(null), 4000);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   const filteredMatches = matches.filter(m => {
     if (filter === 'all') return true;
@@ -64,41 +80,61 @@ export const IpscMatchesHub: React.FC<IpscMatchesHubProps> = ({ compact = false 
               </p>
             </div>
 
-            <a
-              href="https://www.endofscoring.com/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-4 py-2.5 rounded-2xl bg-[#A67C37] hover:bg-[#8C6527] text-white font-bold text-xs flex items-center gap-2 transition shadow-md shrink-0"
-            >
-              <span>כניסה לפורטל End of Scoring</span>
-              <ExternalLink size={14} />
-            </a>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleSync}
+                disabled={isSyncing}
+                className="px-3.5 py-2.5 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs flex items-center gap-1.5 transition border border-white/20 disabled:opacity-50"
+                title="סנכרון תחרויות חי מ-End of Scoring"
+              >
+                <RotateCw size={14} className={isSyncing ? "animate-spin text-amber-400" : ""} />
+                <span>{isSyncing ? 'מסנכרן...' : 'סנכרן מ-EOS'}</span>
+              </button>
+
+              <a
+                href="https://www.endofscoring.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-4 py-2.5 rounded-2xl bg-[#A67C37] hover:bg-[#8C6527] text-white font-bold text-xs flex items-center gap-2 transition shadow-md shrink-0"
+              >
+                <span>כניסה ל-End of Scoring</span>
+                <ExternalLink size={14} />
+              </a>
+            </div>
           </div>
+        </div>
+      )}
+
+      {/* Sync Success Alert */}
+      {syncNotice && (
+        <div className="p-3.5 bg-emerald-50 border border-emerald-300 rounded-2xl text-xs text-emerald-800 font-bold flex items-center gap-2 animate-fade-in">
+          <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
+          <span>{syncNotice}</span>
         </div>
       )}
 
       {/* Filter Tabs */}
       <div className="flex gap-2 p-1 bg-[#FAF8F5] rounded-2xl border border-[#DFCEB0] text-xs font-bold shrink-0 overflow-x-auto">
-        <button
-          onClick={() => setFilter('all')}
-          className={`px-4 py-2 rounded-xl transition-all ${
-            filter === 'all'
-              ? 'bg-[#A67C37] text-white shadow-sm'
-              : 'text-slate-700 hover:bg-[#F4EFE6]'
-          }`}
-        >
-          כל התחרויות ({matches.length})
-        </button>
-        <button
-          onClick={() => setFilter('open')}
-          className={`px-4 py-2 rounded-xl transition-all ${
-            filter === 'open'
-              ? 'bg-emerald-600 text-white shadow-sm'
-              : 'text-slate-700 hover:bg-[#F4EFE6]'
-          }`}
-        >
-          הרשמה פתוחה ({matches.filter(m => m.registrationStatus === 'open').length})
-        </button>
+          <button
+            onClick={() => setFilter('all')}
+            className={`px-4 py-2 rounded-xl transition-all ${
+              filter === 'all'
+                ? 'bg-[#A67C37] text-white shadow-sm'
+                : 'text-slate-700 hover:bg-[#F4EFE6]'
+            }`}
+          >
+            כל התחרויות ({matches.length})
+          </button>
+          <button
+            onClick={() => setFilter('open')}
+            className={`px-4 py-2 rounded-xl transition-all ${
+              filter === 'open'
+                ? 'bg-emerald-600 text-white shadow-sm'
+                : 'text-slate-700 hover:bg-[#F4EFE6]'
+            }`}
+          >
+            הרשמה פתוחה ({matches.filter(m => m.registrationStatus === 'open').length})
+          </button>
         <button
           onClick={() => setFilter('upcoming')}
           className={`px-4 py-2 rounded-xl transition-all ${
