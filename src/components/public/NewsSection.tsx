@@ -68,12 +68,32 @@ export const NewsSection: React.FC<{initialCategory?:NewsCategory|"all"|"matches
           <>
             <div className="news-grid">
               {articles.map((n) => (
-                <article key={n.id} className="news-card">
+                <article key={n.id} className="news-card group">
                   <div
-                    className={`news-art news-art-${n.category}`}
+                    className={`news-art news-art-${n.category} cursor-pointer relative overflow-hidden`}
                     aria-hidden="true"
+                    onClick={() => setArticle(n)}
                   >
-                    {n.imageUrl ? <img src={n.imageUrl} alt="" loading="lazy" className="w-full h-full object-cover" /> : <img src={n.category==='club'?'/assets/news-club.png':'/assets/range-hero-v2.webp'} alt="" loading="lazy" className="w-full h-full object-cover"/>}
+                    {n.imageUrl ? (
+                      <img
+                        src={n.imageUrl}
+                        alt={n.title}
+                        loading="lazy"
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      />
+                    ) : (
+                      <img
+                        src={n.category === 'club' ? '/assets/news-club.png' : '/assets/range-hero-v2.webp'}
+                        alt=""
+                        loading="lazy"
+                        className="w-full h-full object-cover"
+                      />
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
+                      <span className="text-white text-xs font-bold bg-black/70 backdrop-blur-sm px-2.5 py-1 rounded-lg">
+                        לחץ לצפייה בכתבה ובפוסטר המלא
+                      </span>
+                    </div>
                     <span>{labels[n.category]}</span>
                   </div>
                   <div className="news-card-body">
@@ -84,7 +104,7 @@ export const NewsSection: React.FC<{initialCategory?:NewsCategory|"all"|"matches
                     <h3>{n.title}</h3>
                     <p>{n.excerpt}</p>
                     <button className="text-link" onClick={() => setArticle(n)}>
-                      לכתבה המלאה <ArrowUpLeft size={17} />
+                      לכתבה ולפוסטר המלא <ArrowUpLeft size={17} />
                     </button>
                   </div>
                 </article>
@@ -101,34 +121,49 @@ export const NewsSection: React.FC<{initialCategory?:NewsCategory|"all"|"matches
       </div>
       <dialog
         ref={dialog}
-        className="article-dialog"
+        className="article-dialog max-w-2xl"
         onCancel={() => setArticle(null)}
         onClick={(e) => {
           if (e.target === e.currentTarget) setArticle(null);
         }}
       >
-        <div className="dialog-heading">
+        <div className="dialog-heading flex items-center justify-between pb-3 border-b border-[#DFCEB0]/50 mb-4">
           <span className="eyebrow">{article && labels[article.category]}</span>
           <button
-            className="icon-button"
+            className="icon-button p-1.5 rounded-full hover:bg-gray-100 transition"
             aria-label="סגירה"
             onClick={() => setArticle(null)}
           >
             <X size={20} />
           </button>
         </div>
-        <h2>{article?.title}</h2>
-        <p>{article?.excerpt}</p>
-        <p>{article?.content}</p>
+
+        <h2 className="text-xl sm:text-2xl font-black text-graphite-900 mb-3">{article?.title}</h2>
+
+        {article?.imageUrl && (
+          <div className="my-4 rounded-2xl overflow-hidden border border-[#DFCEB0] bg-[#1a1f1e] shadow-md flex justify-center p-1 sm:p-2">
+            <img
+              src={article.imageUrl}
+              alt={article.title}
+              className="max-h-[70vh] w-auto max-w-full object-contain rounded-xl shadow-lg"
+            />
+          </div>
+        )}
+
+        <p className="font-bold text-base text-graphite-800 leading-relaxed mb-3">{article?.excerpt}</p>
+        <p className="whitespace-pre-line text-sm text-graphite-700 leading-relaxed">{article?.content}</p>
+
         {article?.sourceUrl && (
-          <a
-            className="text-link"
-            href={article.sourceUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            למקור הכתבה <ArrowUpLeft size={17} />
-          </a>
+          <div className="mt-4 pt-3 border-t border-[#DFCEB0]/40">
+            <a
+              className="text-link inline-flex items-center gap-1 font-bold text-falcon-700 hover:text-falcon-900"
+              href={article.sourceUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              למקור הכתבה <ArrowUpLeft size={17} />
+            </a>
+          </div>
         )}
       </dialog>
     </section>

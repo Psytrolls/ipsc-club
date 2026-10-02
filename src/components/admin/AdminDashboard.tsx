@@ -764,24 +764,39 @@ export const AdminDashboard: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <label className="block font-bold text-xs text-slate-800 flex items-center gap-1.5">
                     <ImageIcon size={15} className="text-[#A67C37]" />
-                    <span>תמונת הכתבה (תוצג בעמוד הראשי):</span>
+                    <span>תמונת / פוסטר הכתבה (תוצג בכרטיס ובכתבה המלאה):</span>
                   </label>
                 </div>
 
                 {editingArticle.imageUrl && (
-                  <div className="relative w-full h-44 rounded-2xl overflow-hidden border border-[#DFCEB0] bg-black/5 shadow-inner">
-                    <img
-                      src={editingArticle.imageUrl}
-                      alt="תצוגה מקדימה"
-                      className="w-full h-full object-cover"
-                    />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <span className="text-[11px] font-bold text-graphite-600 block mb-1">תצוגה בכרטיס ראשי (16:9):</span>
+                      <div className="relative w-full h-36 rounded-xl overflow-hidden border border-[#DFCEB0] bg-black/5 shadow-inner">
+                        <img
+                          src={editingArticle.imageUrl}
+                          alt="תצוגה מקדימה בכרטיס"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-[11px] font-bold text-graphite-600 block mb-1">תצוגת פוסטר מלאה בלחיצה:</span>
+                      <div className="relative w-full h-36 rounded-xl overflow-hidden border border-[#DFCEB0] bg-[#1a1f1e] shadow-inner flex items-center justify-center p-1">
+                        <img
+                          src={editingArticle.imageUrl}
+                          alt="תצוגת פוסטר שלמה"
+                          className="max-h-full max-w-full object-contain rounded"
+                        />
+                      </div>
+                    </div>
                   </div>
                 )}
 
                 <div className="flex flex-wrap items-center gap-2">
                   <label className="px-4 py-2 bg-[#252C2A] hover:bg-[#343d3a] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer transition shadow-sm">
                     <Upload size={14} />
-                    <span>העלאת תמונה מהמכשיר</span>
+                    <span>העלאת תמונה / פוסטר מהמכשיר</span>
                     <input
                       type="file"
                       accept="image/*"
@@ -790,9 +805,9 @@ export const AdminDashboard: React.FC = () => {
                         const file = e.target.files?.[0];
                         if (file) {
                           try {
-                            const optimizedDataUrl = await optimizeArticleImage(file, 1280, 720);
+                            const optimizedDataUrl = await optimizeArticleImage(file, 1600, 1600);
                             setEditingArticle({ ...editingArticle, imageUrl: optimizedDataUrl });
-                            showToast('התמונה הותאמה ונדחסה אוטומטית ל-HD 16:9', 'success');
+                            showToast('התמונה/הפוסטר הותאמו ונשמרו באיכות גבוהה', 'success');
                           } catch (err) {
                             showToast('שגיאה בעיבוד התמונה', 'error');
                           }
@@ -805,7 +820,7 @@ export const AdminDashboard: React.FC = () => {
                 </div>
 
                 <div className="text-[11px] text-slate-500">
-                  ✨ התמונה מותאמת ומכווצת אוטומטית ברזולוציית HD 16:9 מותאמת לעמוד הראשי ולמובייל.
+                  ✨ התמונה נדחסת ומותאמת אוטומטית ברזולוציית HD (מתאים גם לפוסטרים אנכיים וגם לתמונות רוחביות).
                 </div>
 
                 <input
