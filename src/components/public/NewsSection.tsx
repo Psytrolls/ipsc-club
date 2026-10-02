@@ -141,11 +141,11 @@ export const NewsSection: React.FC<{initialCategory?:NewsCategory|"all"|"matches
         <h2 className="text-xl sm:text-2xl font-black text-graphite-900 mb-3">{article?.title}</h2>
 
         {article?.imageUrl && (
-          <div className="my-4 rounded-2xl overflow-hidden border border-[#DFCEB0] bg-[#1a1f1e] shadow-md flex justify-center p-1 sm:p-2">
+          <div className="my-3 flex justify-center">
             <img
               src={article.imageUrl}
               alt={article.title}
-              className="max-h-[70vh] w-auto max-w-full object-contain rounded-xl shadow-lg"
+              className="max-h-[72vh] w-auto max-w-full object-contain rounded-2xl shadow-sm border border-[#DFCEB0]/60"
             />
           </div>
         )}

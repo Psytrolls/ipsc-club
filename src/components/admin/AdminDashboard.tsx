@@ -782,7 +782,7 @@ export const AdminDashboard: React.FC = () => {
                     </div>
                     <div>
                       <span className="text-[11px] font-bold text-graphite-600 block mb-1">תצוגת פוסטר מלאה בלחיצה:</span>
-                      <div className="relative w-full h-36 rounded-xl overflow-hidden border border-[#DFCEB0] bg-[#1a1f1e] shadow-inner flex items-center justify-center p-1">
+                      <div className="relative w-full h-36 rounded-xl overflow-hidden border border-[#DFCEB0] bg-[#FAF8F5] shadow-inner flex items-center justify-center p-1">
                         <img
                           src={editingArticle.imageUrl}
                           alt="תצוגת פוסטר שלמה"
