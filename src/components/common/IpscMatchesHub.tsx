@@ -29,7 +29,6 @@ interface IpscMatchesHubProps {
 export const IpscMatchesHub: React.FC<IpscMatchesHubProps> = ({ compact = false }) => {
   const [matches, setMatches] = useState<IPSCMatch[]>(getStoredMatches());
   const [filter, setFilter] = useState<'all' | 'open' | 'upcoming' | 'completed'>('all');
-  const [expandedPodiumId, setExpandedPodiumId] = useState<string | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncNotice, setSyncNotice] = useState<string | null>(null);
 
@@ -50,13 +49,9 @@ export const IpscMatchesHub: React.FC<IpscMatchesHubProps> = ({ compact = false 
     if (filter === 'all') return true;
     if (filter === 'open') return m.registrationStatus === 'open';
     if (filter === 'upcoming') return m.registrationStatus === 'opening_soon' || m.registrationStatus === 'open';
-    if (filter === 'completed') return m.registrationStatus === 'completed';
+    if (filter === 'completed') return m.registrationStatus === 'completed' || m.registrationStatus === 'closed';
     return true;
   });
-
-  const togglePodium = (matchId: string) => {
-    setExpandedPodiumId(prev => (prev === matchId ? null : matchId));
-  };
 
   return (
     <div className="space-y-5 text-right">
@@ -153,7 +148,7 @@ export const IpscMatchesHub: React.FC<IpscMatchesHubProps> = ({ compact = false 
               : 'text-slate-700 hover:bg-[#F4EFE6]'
           }`}
         >
-          תוצאות ופודיום ({matches.filter(m => m.registrationStatus === 'completed').length})
+          הסתיימו ({matches.filter(m => m.registrationStatus === 'completed' || m.registrationStatus === 'closed').length})
         </button>
       </div>
 
@@ -161,8 +156,6 @@ export const IpscMatchesHub: React.FC<IpscMatchesHubProps> = ({ compact = false 
       <div className="space-y-4">
         {filteredMatches.map(match => {
           const statusMeta = getMatchStatusMeta(match.registrationStatus, match.registrationOpensDate);
-          const hasPodium = match.podium && match.podium.length > 0;
-          const isPodiumExpanded = expandedPodiumId === match.id;
 
           return (
             <div
@@ -249,35 +242,11 @@ export const IpscMatchesHub: React.FC<IpscMatchesHubProps> = ({ compact = false 
                   </a>
                 </div>
 
-                {/* Club Highlights (if any) */}
-                {match.clubHighlights && match.clubHighlights.length > 0 && (
-                  <div className="p-3 bg-amber-50/70 border border-amber-200 rounded-2xl space-y-1.5 text-xs">
-                    <div className="font-bold text-amber-900 flex items-center gap-1.5">
-                      <Sparkles size={14} className="text-amber-600" />
-                      <span>דגשי מועדון נץ המדבר:</span>
-                    </div>
-                    <ul className="space-y-1 text-amber-800 pr-4 list-disc">
-                      {match.clubHighlights.map((hl, i) => (
-                        <li key={i}>{hl}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
                 {/* Action Buttons Bar */}
                 <div className="pt-2 flex flex-wrap items-center justify-between gap-2 border-t border-[#EFE6D5]">
-                  <div className="flex items-center gap-2">
-                    {hasPodium && (
-                      <button
-                        onClick={() => togglePodium(match.id)}
-                        className="px-4 py-2 rounded-xl bg-[#252C2A] hover:bg-[#343d3a] text-amber-400 font-bold text-xs flex items-center gap-1.5 transition shadow-sm"
-                      >
-                        <Trophy size={14} />
-                        <span>{isPodiumExpanded ? 'הסתר פודיום' : 'צפה בפודיום ובתוצאות 🥇'}</span>
-                        {isPodiumExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                      </button>
-                    )}
-                  </div>
+                  <span className="text-[11px] text-slate-500 font-mono">
+                    EOS Alias: {match.alias || match.id}
+                  </span>
 
                   <div className="flex items-center gap-2">
                     {statusMeta.canRegister ? (
@@ -290,88 +259,20 @@ export const IpscMatchesHub: React.FC<IpscMatchesHubProps> = ({ compact = false 
                         <span>הרשמה ומקצים ב-End of Scoring</span>
                         <ExternalLink size={14} />
                       </a>
-                    ) : match.resultsUrl ? (
+                    ) : (
                       <a
-                        href={match.resultsUrl}
+                        href={match.resultsUrl || match.matchUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="px-4 py-2 rounded-xl bg-[#FAF8F5] hover:bg-[#F4EFE6] text-slate-800 border border-[#DFCEB0] font-bold text-xs flex items-center gap-1.5 transition"
+                        className="px-4 py-2 rounded-xl bg-[#252C2A] hover:bg-[#343d3a] text-amber-400 font-bold text-xs flex items-center gap-1.5 transition shadow-sm"
                       >
-                        <span>דוח תוצאות רשמי ב-EOS</span>
+                        <span>תוצאות ופרטים ב-End of Scoring</span>
                         <ExternalLink size={13} />
                       </a>
-                    ) : null}
+                    )}
                   </div>
                 </div>
               </div>
-
-              {/* Interactive Podium Dropdown Section */}
-              {hasPodium && isPodiumExpanded && (
-                <div className="p-5 sm:p-6 bg-[#FAF8F5] border-t border-[#DFCEB0] space-y-4 animate-fade-in">
-                  <div className="flex items-center gap-2">
-                    <Trophy size={18} className="text-[#A67C37]" />
-                    <h4 className="font-black text-sm text-slate-900">
-                      פודיום מנצחים רשמי — {match.title}
-                    </h4>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    {match.podium!.map((p, idx) => (
-                      <div
-                        key={idx}
-                        className="p-4 bg-white rounded-2xl border border-[#DFCEB0] shadow-xs space-y-3"
-                      >
-                        <div className="text-xs font-black text-slate-900 border-b border-[#EFE6D5] pb-2 flex items-center justify-between">
-                          <span className="text-[#A67C37]">{p.division}</span>
-                          <span className="text-[10px] text-slate-400 font-mono">DIV</span>
-                        </div>
-
-                        {/* 1st Place */}
-                        <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <span className="text-base">🥇</span>
-                            <div>
-                              <strong className="text-xs text-amber-950 block">{p.first.name}</strong>
-                              <span className="text-[10px] text-amber-800">{p.first.club}</span>
-                            </div>
-                          </div>
-                          <span className="text-xs font-mono font-black text-amber-900">
-                            {p.first.percentage.toFixed(1)}%
-                          </span>
-                        </div>
-
-                        {/* 2nd Place */}
-                        <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <span className="text-base">🥈</span>
-                            <div>
-                              <strong className="text-xs text-slate-900 block">{p.second.name}</strong>
-                              <span className="text-[10px] text-slate-600">{p.second.club}</span>
-                            </div>
-                          </div>
-                          <span className="text-xs font-mono font-bold text-slate-700">
-                            {p.second.percentage.toFixed(1)}%
-                          </span>
-                        </div>
-
-                        {/* 3rd Place */}
-                        <div className="p-2.5 rounded-xl bg-amber-900/5 border border-amber-900/10 flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <span className="text-base">🥉</span>
-                            <div>
-                              <strong className="text-xs text-amber-950 block">{p.third.name}</strong>
-                              <span className="text-[10px] text-amber-900/80">{p.third.club}</span>
-                            </div>
-                          </div>
-                          <span className="text-xs font-mono font-bold text-amber-950">
-                            {p.third.percentage.toFixed(1)}%
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
           );
         })}
