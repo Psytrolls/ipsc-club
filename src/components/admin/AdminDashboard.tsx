@@ -8,6 +8,7 @@ import { getWhatsAppUrl, createCredentialsWhatsAppMessage, createTrainingSquadWh
 import { checkUserDocuments } from '../../lib/documentStatus';
 import { DEFAULT_RANGE_LOCATION, DEFAULT_WAZE_URL, getWazeNavigationUrl } from '../../lib/navigation';
 import { ComplianceRadarModal } from '../modals/ComplianceRadarModal';
+import { optimizeArticleImage } from '../../lib/imageOptimization';
 import {
   Shield,
   Users,
@@ -785,22 +786,26 @@ export const AdminDashboard: React.FC = () => {
                       type="file"
                       accept="image/*"
                       className="hidden"
-                      onChange={e => {
+                      onChange={async e => {
                         const file = e.target.files?.[0];
                         if (file) {
-                          const reader = new FileReader();
-                          reader.onloadend = () => {
-                            if (typeof reader.result === 'string') {
-                              setEditingArticle({ ...editingArticle, imageUrl: reader.result });
-                            }
-                          };
-                          reader.readAsDataURL(file);
+                          try {
+                            const optimizedDataUrl = await optimizeArticleImage(file, 1280, 720);
+                            setEditingArticle({ ...editingArticle, imageUrl: optimizedDataUrl });
+                            showToast('התמונה הותאמה ונדחסה אוטומטית ל-HD 16:9', 'success');
+                          } catch (err) {
+                            showToast('שגיאה בעיבוד התמונה', 'error');
+                          }
                         }
                       }}
                     />
                   </label>
 
                   <span className="text-xs text-slate-500 font-semibold">או הזנת קישור לתמונה:</span>
+                </div>
+
+                <div className="text-[11px] text-slate-500">
+                  ✨ התמונה מותאמת ומכווצת אוטומטית ברזולוציית HD 16:9 מותאמת לעמוד הראשי ולמובייל.
                 </div>
 
                 <input
