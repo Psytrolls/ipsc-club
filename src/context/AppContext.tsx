@@ -1,7 +1,6 @@
 import React, {createContext,useContext,useState,useEffect,useRef,useCallback} from 'react';
-
 import {User,UserRole,TrainingSession,Registration,ExerciseResult,ExerciseTemplate,Feedback,FocusItem,FocusStatus,LeadInquiry,LeadStatus,NewsArticle,PublicPages} from '../types';
-export async function api(path:string,method='GET',body?:unknown){const response=await fetch('/api'+path,{method,credentials:'same-origin',headers:method==='GET'?{}:{'Content-Type':'application/json'},...(body!==undefined?{body:JSON.stringify(body)}:{})});const data=await response.json();if(!response.ok)throw new Error(data.error||'הפעולה נכשלה');return data;}
+export async function api(path:string,method='GET',body?:unknown){const headers:Record<string,string>={};if(body!==undefined){headers['Content-Type']='application/json';}else if(['POST','PUT','PATCH','DELETE'].includes(method)){headers['Content-Type']='application/json';}const response=await fetch('/api'+path,{method,credentials:'same-origin',headers,body:body!==undefined?JSON.stringify(body):['POST','PUT','PATCH'].includes(method)?JSON.stringify({}):undefined});const data=await response.json();if(!response.ok)throw new Error(data.error||'הפעולה נכשלה');return data;}
 interface ToastMessage {
   id: string;
   message: string;
