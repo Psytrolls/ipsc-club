@@ -16,7 +16,10 @@ import {
   CalendarPlus,
   ExternalLink,
   Navigation,
+  Target,
+  Trophy
 } from "lucide-react";
+import { IpscMatchesHub } from "../common/IpscMatchesHub";
 import { TargetIcon } from "../common/TargetIcon";
 
 interface ShooterTrainingsProps {
@@ -33,6 +36,7 @@ export const ShooterTrainings: React.FC<ShooterTrainingsProps> = ({
     registerForTraining,
     cancelRegistration,
   } = useApp();
+  const [scheduleType, setScheduleType] = useState<"club" | "matches">("club");
   const [filter, setFilter] = useState<"upcoming" | "my" | "past">("upcoming");
 
   const myRegs = registrations.filter(
@@ -54,18 +58,49 @@ export const ShooterTrainings: React.FC<ShooterTrainingsProps> = ({
         : upcomingTrainings;
 
   return (
-    <div className="space-y-4 max-w-lg mx-auto pb-12 text-right">
+    <div className="space-y-4 max-w-2xl mx-auto pb-12 text-right">
       <div className="flex items-center justify-between pt-2">
         <div>
-          <h2 className="text-2xl font-black text-graphite-900">לוח אימונים</h2>
+          <h2 className="text-2xl font-black text-graphite-900">לוח אימונים ותחרויות</h2>
           <p className="text-sm text-graphite-500">
-            אימוני מועדון פתוחים לחברים פעילים בלבד
+            אימוני מועדון פנימיים ותחרויות IPSC ארציות ב-End of Scoring
           </p>
         </div>
       </div>
 
-      {/* Filter Tabs */}
-      <div className="flex gap-2 p-1 bg-[#EFE6D5]/60 rounded-2xl border border-[#DFCEB0] text-sm font-bold">
+      {/* Main Switcher: Club Trainings vs Israeli IPSC Matches */}
+      <div className="grid grid-cols-2 gap-2 p-1.5 bg-white rounded-2xl border border-[#DFCEB0] shadow-xs">
+        <button
+          onClick={() => setScheduleType("club")}
+          className={`py-2.5 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition ${
+            scheduleType === "club"
+              ? "bg-[#A67C37] text-white shadow-sm"
+              : "text-slate-700 hover:bg-[#FAF8F5]"
+          }`}
+        >
+          <Target size={15} />
+          <span>אימוני מועדון נץ המדבר</span>
+        </button>
+
+        <button
+          onClick={() => setScheduleType("matches")}
+          className={`py-2.5 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition ${
+            scheduleType === "matches"
+              ? "bg-[#252C2A] text-amber-400 shadow-sm"
+              : "text-slate-700 hover:bg-[#FAF8F5]"
+          }`}
+        >
+          <Trophy size={15} />
+          <span>תחרויות ארציות (EOS)</span>
+        </button>
+      </div>
+
+      {scheduleType === "matches" ? (
+        <IpscMatchesHub compact />
+      ) : (
+        <>
+          {/* Filter Tabs for Club Trainings */}
+          <div className="flex gap-2 p-1 bg-[#EFE6D5]/60 rounded-2xl border border-[#DFCEB0] text-sm font-bold">
         <button
           onClick={() => setFilter("upcoming")}
           className={`flex-1 py-2 rounded-xl transition-all ${
@@ -252,6 +287,8 @@ export const ShooterTrainings: React.FC<ShooterTrainingsProps> = ({
           })
         )}
       </div>
+      </>
+      )}
     </div>
   );
 };
