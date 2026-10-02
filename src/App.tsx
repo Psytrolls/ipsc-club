@@ -107,7 +107,7 @@ export const AppContent: React.FC = () => {
                   onOpenJoinModal={() => setJoinModalOpen(true)}
                 />
                 <AboutSection />
-                <HomeNewsLinks onOpen={(category) => { setNewsCategory(category); scrollToSection('news'); }} />
+                <NewsSection initialCategory={newsCategory} />
                 <FAQSection />
               </>}
             </div>

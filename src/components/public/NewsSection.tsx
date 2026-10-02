@@ -19,13 +19,13 @@ export const NewsSection: React.FC<{initialCategory?:NewsCategory|"all"|"matches
     if (article) dialog.current?.showModal();
     else dialog.current?.close();
   }, [article]);
-  const articles = news
+  const articles = [...news]
     .filter(
       (n) =>
         n.status === "published" &&
         (category === "all" || n.category === category),
     )
-    .slice(0, 3);
+    .sort((a, b) => b.publishDate.localeCompare(a.publishDate));
   return (
     <section id="news" className="section-space news-section">
       <div className="falcon-container">

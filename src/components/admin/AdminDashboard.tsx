@@ -30,7 +30,9 @@ import {
   Copy,
   ShieldAlert,
   MapPin,
-  Navigation
+  Navigation,
+  Upload,
+  Image as ImageIcon
 } from 'lucide-react';
 
 export const AdminDashboard: React.FC = () => {
@@ -730,14 +732,83 @@ export const AdminDashboard: React.FC = () => {
                 </select>
               </div>
 
-              <div>
-                <label className="block font-bold mb-1">פרסום<select value={editingArticle.status} onChange={e=>setEditingArticle({...editingArticle,status:e.target.value as any})} className="w-full p-2 border rounded"><option value="draft">טיוטה</option><option value="published">פורסם</option><option value="archived">ארכיון</option></select></label><label className="block font-bold mb-1">קישור למקור<input type="url" value={editingArticle.sourceUrl||''} onChange={e=>setEditingArticle({...editingArticle,sourceUrl:e.target.value})} className="w-full p-2 border rounded"/></label>
-                <label className="block font-bold mb-1">קישור לתמונה (Image URL):</label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold mb-1">סטטוס פרסום:</label>
+                  <select
+                    value={editingArticle.status}
+                    onChange={e => setEditingArticle({ ...editingArticle, status: e.target.value as any })}
+                    className="w-full p-2.5 rounded-xl border border-[#DFCEB0] bg-white font-semibold"
+                  >
+                    <option value="published">פורסם (יופיע באתר)</option>
+                    <option value="draft">טיוטה</option>
+                    <option value="archived">ארכיון</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-bold mb-1">קישור למקור חיצוני (אופציונלי):</label>
+                  <input
+                    type="url"
+                    placeholder="https://..."
+                    value={editingArticle.sourceUrl || ''}
+                    onChange={e => setEditingArticle({ ...editingArticle, sourceUrl: e.target.value })}
+                    className="w-full p-2.5 rounded-xl border border-[#DFCEB0] bg-white font-mono text-xs"
+                  />
+                </div>
+              </div>
+
+              {/* News Article Image Upload & Preview */}
+              <div className="p-3.5 bg-[#FAF8F5] rounded-2xl border border-[#DFCEB0] space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="block font-bold text-xs text-slate-800 flex items-center gap-1.5">
+                    <ImageIcon size={15} className="text-[#A67C37]" />
+                    <span>תמונת הכתבה (תוצג בעמוד הראשי):</span>
+                  </label>
+                </div>
+
+                {editingArticle.imageUrl && (
+                  <div className="relative w-full h-44 rounded-2xl overflow-hidden border border-[#DFCEB0] bg-black/5 shadow-inner">
+                    <img
+                      src={editingArticle.imageUrl}
+                      alt="תצוגה מקדימה"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                )}
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <label className="px-4 py-2 bg-[#252C2A] hover:bg-[#343d3a] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer transition shadow-sm">
+                    <Upload size={14} />
+                    <span>העלאת תמונה מהמכשיר</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={e => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onloadend = () => {
+                            if (typeof reader.result === 'string') {
+                              setEditingArticle({ ...editingArticle, imageUrl: reader.result });
+                            }
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                    />
+                  </label>
+
+                  <span className="text-xs text-slate-500 font-semibold">או הזנת קישור לתמונה:</span>
+                </div>
+
                 <input
                   type="text"
+                  placeholder="https://... או בחר תמונה להעלאה"
                   value={editingArticle.imageUrl}
                   onChange={e => setEditingArticle({ ...editingArticle, imageUrl: e.target.value })}
-                  className="w-full p-2.5 rounded-xl border border-[#DFCEB0] font-mono text-sm"
+                  className="w-full p-2.5 rounded-xl border border-[#DFCEB0] bg-white font-mono text-xs"
                 />
               </div>
 
