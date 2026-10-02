@@ -172,6 +172,7 @@ export interface NewsArticle {
   status: ArticleStatus;
   author: string;
   sourceUrl?: string;
+  isPinned?: boolean;
 }
 
 export interface PublicPages {id:'public';heroTitle:string;heroAccent:string;heroBody:string;aboutTitle:string;aboutBody:string;sportTitle:string;sportBody:string;whatsappUrl?:string;instagramUrl?:string;facebookUrl?:string;}

@@ -25,7 +25,12 @@ export const NewsSection: React.FC<{initialCategory?:NewsCategory|"all"|"matches
         n.status === "published" &&
         (category === "all" || n.category === category),
     )
-    .sort((a, b) => b.publishDate.localeCompare(a.publishDate));
+    .sort((a, b) => {
+      const pinA = a.isPinned ? 1 : 0;
+      const pinB = b.isPinned ? 1 : 0;
+      if (pinA !== pinB) return pinB - pinA;
+      return b.publishDate.localeCompare(a.publishDate);
+    });
   return (
     <section id="news" className="section-space news-section">
       <div className="falcon-container">
@@ -68,7 +73,7 @@ export const NewsSection: React.FC<{initialCategory?:NewsCategory|"all"|"matches
           <>
             <div className="news-grid">
               {articles.map((n) => (
-                <article key={n.id} className="news-card group">
+                <article key={n.id} className={`news-card group ${n.isPinned ? 'border-amber-400 ring-1 ring-amber-300/40 shadow-sm' : ''}`}>
                   <div
                     className={`news-art news-art-${n.category} cursor-pointer relative overflow-hidden`}
                     aria-hidden="true"
@@ -89,6 +94,13 @@ export const NewsSection: React.FC<{initialCategory?:NewsCategory|"all"|"matches
                         className="w-full h-full object-cover"
                       />
                     )}
+                    {n.isPinned && (
+                      <div className="absolute top-3 right-3 z-10">
+                        <span className="bg-amber-500 text-graphite-950 text-xs font-black px-2.5 py-1 rounded-full shadow-md flex items-center gap-1 border border-amber-300">
+                          📌 נעוץ בראש
+                        </span>
+                      </div>
+                    )}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
                       <span className="text-white text-xs font-bold bg-black/70 backdrop-blur-sm px-2.5 py-1 rounded-lg">
                         לחץ לצפייה בכתבה ובפוסטר המלא
@@ -97,8 +109,15 @@ export const NewsSection: React.FC<{initialCategory?:NewsCategory|"all"|"matches
                     <span>{labels[n.category]}</span>
                   </div>
                   <div className="news-card-body">
-                    <div className="news-meta">
-                      <span>{labels[n.category]}</span>
+                    <div className="news-meta flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span>{labels[n.category]}</span>
+                        {n.isPinned && (
+                          <span className="text-[11px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-md">
+                            הודעה נעוצה
+                          </span>
+                        )}
+                      </div>
                       <time>{n.publishDate}</time>
                     </div>
                     <h3>{n.title}</h3>

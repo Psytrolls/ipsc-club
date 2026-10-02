@@ -33,7 +33,8 @@ import {
   MapPin,
   Navigation,
   Upload,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Pin
 } from 'lucide-react';
 
 export const AdminDashboard: React.FC = () => {
@@ -130,8 +131,9 @@ export const AdminDashboard: React.FC = () => {
       content: 'תוכן הכתבה המלאה כאן...',
       imageUrl: '',
       publishDate: new Date().toISOString().slice(0,10),
-      status: 'draft',
+      status: 'published',
       author: 'הנהלת המועדון',
+      isPinned: false,
     });
     setIsNewArticle(true);
   };
@@ -539,38 +541,87 @@ export const AdminDashboard: React.FC = () => {
           </div>
 
           <div className="space-y-3">
-            {news.map(art => (
-              <div key={art.id} className="p-4 rounded-2xl border border-[#EFE6D5] bg-[#FAF8F5] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <img src={art.imageUrl} alt="" className="w-16 h-12 rounded-xl object-cover" />
-                  <div>
-                    <span className="text-sm font-bold text-falcon-700">
-                      {art.category === 'club' ? 'חדשות מועדון' : art.category === 'world' ? 'עולם' : 'ישראל'} | {art.publishDate}
-                    </span>
-                    <h4 className="font-bold text-sm text-graphite-900">{art.title}</h4>
+            {[...news]
+              .sort((a, b) => {
+                const pinA = a.isPinned ? 1 : 0;
+                const pinB = b.isPinned ? 1 : 0;
+                if (pinA !== pinB) return pinB - pinA;
+                return b.publishDate.localeCompare(a.publishDate);
+              })
+              .map((art) => (
+                <div
+                  key={art.id}
+                  className={`p-4 rounded-2xl border transition-all ${
+                    art.isPinned
+                      ? 'border-amber-400 bg-amber-50/50 shadow-sm'
+                      : 'border-[#EFE6D5] bg-[#FAF8F5]'
+                  } flex flex-col sm:flex-row sm:items-center justify-between gap-3`}
+                >
+                  <div className="flex items-center gap-3">
+                    {art.imageUrl ? (
+                      <img src={art.imageUrl} alt="" className="w-16 h-12 rounded-xl object-cover border border-[#DFCEB0]" />
+                    ) : (
+                      <div className="w-16 h-12 rounded-xl bg-gray-200 flex items-center justify-center text-[10px] text-gray-500 font-bold">
+                        ללא תמונה
+                      </div>
+                    )}
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2 mb-1">
+                        <span className="text-xs font-bold text-falcon-700">
+                          {art.category === 'club' ? 'חדשות מועדון' : art.category === 'world' ? 'עולם' : 'ישראל'} | {art.publishDate}
+                        </span>
+                        {art.isPinned && (
+                          <span className="text-[11px] font-black text-amber-900 bg-amber-200/90 px-2 py-0.5 rounded-full border border-amber-300 flex items-center gap-1">
+                            📌 נעוץ בראש
+                          </span>
+                        )}
+                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${art.status === 'published' ? 'bg-emerald-100 text-emerald-800' : art.status === 'draft' ? 'bg-amber-100 text-amber-800' : 'bg-gray-200 text-gray-700'}`}>
+                          {art.status === 'published' ? 'פורסם' : art.status === 'draft' ? 'טיוטה' : 'ארכיון'}
+                        </span>
+                      </div>
+                      <h4 className="font-bold text-sm text-graphite-900">{art.title}</h4>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      title={art.isPinned ? 'בטל נעיצה בראש העמוד' : 'נעץ כתבה זו בראש העמוד'}
+                      onClick={async () => {
+                        await saveNewsArticle({ ...art, isPinned: !art.isPinned });
+                      }}
+                      className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition border ${
+                        art.isPinned
+                          ? 'bg-amber-400 text-graphite-950 border-amber-500 shadow-sm'
+                          : 'bg-white text-graphite-700 border-[#DFCEB0] hover:bg-amber-50 hover:text-amber-800'
+                      }`}
+                    >
+                      <Pin size={13} className={art.isPinned ? 'fill-current' : ''} />
+                      <span>{art.isPinned ? 'נעוץ בראש 📌' : 'נעץ בראש'}</span>
+                    </button>
+                    <button
+                      title="עריכת כתבה"
+                      onClick={() => {
+                        setEditingArticle(art);
+                        setIsNewArticle(false);
+                      }}
+                      className="p-2 rounded-xl bg-white border border-[#DFCEB0] text-graphite-700 hover:text-falcon-700 transition"
+                    >
+                      <Edit2 size={14} />
+                    </button>
+                    <button
+                      title="מחיקת כתבה לצמיתות"
+                      onClick={async () => {
+                        if (window.confirm(`האם אתה בטוח שברצונך למחוק לצמיתות את הכתבה:\n"${art.title}"?`)) {
+                          await deleteNewsArticle(art.id);
+                        }
+                      }}
+                      className="p-2 rounded-xl bg-white border border-rose-200 text-rose-600 hover:bg-rose-50 transition"
+                    >
+                      <Trash2 size={14} />
+                    </button>
                   </div>
                 </div>
-
-                <div className="flex flex-wrap items-center gap-2">
-
-                  <button
-                    onClick={() => {
-                      setEditingArticle(art);
-                      setIsNewArticle(false);
-                    }}
-                    className="p-2 rounded-xl bg-white border border-[#DFCEB0] text-graphite-700 hover:text-falcon-700"
-                  >
-                    <Edit2 size={14} />
-                  </button>
-                  <button
-                    onClick={() => deleteNewsArticle(art.id)}
-                    className="p-2 rounded-xl bg-white border border-rose-200 text-rose-600 hover:bg-rose-50"
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-              </div>
-            ))}
+              ))}
           </div>
         </div>
       )}
@@ -720,17 +771,41 @@ export const AdminDashboard: React.FC = () => {
                 />
               </div>
 
-              <div>
-                <label className="block font-bold mb-1">קטגוריה:</label>
-                <select
-                  value={editingArticle.category}
-                  onChange={e => setEditingArticle({ ...editingArticle, category: e.target.value as any })}
-                  className="w-full p-2.5 rounded-xl border border-[#DFCEB0]"
-                >
-                  <option value="club">חדשות המועדון</option>
-                  <option value="israel">ירי מעשי ישראל</option>
-                  <option value="world">מהעולם (IPSC World)</option>
-                </select>
+              {/* Pin to Top Checkbox */}
+              <label className="flex items-center gap-2.5 p-3 bg-amber-50 rounded-2xl border border-amber-200 cursor-pointer font-bold text-xs sm:text-sm text-amber-950 transition hover:bg-amber-100/70">
+                <input
+                  type="checkbox"
+                  checked={Boolean(editingArticle.isPinned)}
+                  onChange={e => setEditingArticle({ ...editingArticle, isPinned: e.target.checked })}
+                  className="w-4 h-4 rounded text-amber-600 accent-amber-600 cursor-pointer"
+                />
+                <Pin size={16} className={editingArticle.isPinned ? 'fill-amber-600 text-amber-600' : 'text-amber-700'} />
+                <span>נעץ כתבה זו בראש העמוד (מופיעה תמיד ראשונה באתר) 📌</span>
+              </label>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold mb-1">קטגוריה:</label>
+                  <select
+                    value={editingArticle.category}
+                    onChange={e => setEditingArticle({ ...editingArticle, category: e.target.value as any })}
+                    className="w-full p-2.5 rounded-xl border border-[#DFCEB0] bg-white font-semibold"
+                  >
+                    <option value="club">חדשות המועדון</option>
+                    <option value="israel">ירי מעשי ישראל</option>
+                    <option value="world">מהעולם (IPSC World)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-bold mb-1">תאריך פרסום (YYYY-MM-DD):</label>
+                  <input
+                    type="date"
+                    value={editingArticle.publishDate}
+                    onChange={e => setEditingArticle({ ...editingArticle, publishDate: e.target.value })}
+                    className="w-full p-2.5 rounded-xl border border-[#DFCEB0] bg-white font-semibold text-xs"
+                  />
+                </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -853,19 +928,39 @@ export const AdminDashboard: React.FC = () => {
               </div>
             </div>
 
-            <div className="pt-3 flex justify-end gap-2 border-t border-gray-100">
-              <button
-                onClick={() => setEditingArticle(null)}
-                className="px-4 py-2 rounded-xl text-graphite-600 hover:bg-gray-100 text-sm font-semibold"
-              >
-                ביטול
-              </button>
-              <button
-                onClick={async () => { if(await saveNewsArticle(editingArticle)) setEditingArticle(null); }}
-                className="px-5 py-2 rounded-xl bg-falcon-500 hover:bg-falcon-600 text-white text-sm font-bold"
-              >
-                שמור כתבה
-              </button>
+            <div className="pt-3 flex items-center justify-between gap-2 border-t border-gray-100">
+              <div>
+                {!isNewArticle && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (window.confirm(`האם אתה בטוח שברצונך למחוק לצמיתות את הכתבה:\n"${editingArticle.title}"?`)) {
+                        await deleteNewsArticle(editingArticle.id);
+                        setEditingArticle(null);
+                      }
+                    }}
+                    className="px-3.5 py-2 rounded-xl text-rose-600 hover:bg-rose-50 border border-rose-200 text-xs font-bold flex items-center gap-1.5 transition"
+                  >
+                    <Trash2 size={14} />
+                    <span>מחק כתבה</span>
+                  </button>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setEditingArticle(null)}
+                  className="px-4 py-2 rounded-xl text-graphite-600 hover:bg-gray-100 text-sm font-semibold"
+                >
+                  ביטול
+                </button>
+                <button
+                  onClick={async () => { if(await saveNewsArticle(editingArticle)) setEditingArticle(null); }}
+                  className="px-5 py-2 rounded-xl bg-falcon-500 hover:bg-falcon-600 text-white text-sm font-bold"
+                >
+                  שמור כתבה
+                </button>
+              </div>
             </div>
           </div>
         </div>
