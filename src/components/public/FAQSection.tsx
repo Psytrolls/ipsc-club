@@ -4,12 +4,12 @@ export const FAQSection: React.FC = () => (
   <section id="faq" className="section-space">
     <div className="falcon-container faq-layout">
       <div>
-        <div className="eyebrow">04 — טוב לדעת</div>
-        <h2>שאלות נפוצות</h2>
+        <div className="eyebrow">04 / שאלות נפוצות</div>
+        <h2>שאלות ותשובות</h2>
         <p className="section-copy">
-          כמה תשובות שיעזרו לכם
+          כל מה שחשוב לדעת
           <br />
-          להכיר את הדרך למועדון.
+          בדרך להצטרפות למועדון.
         </p>
       </div>
       <div className="faq-list">

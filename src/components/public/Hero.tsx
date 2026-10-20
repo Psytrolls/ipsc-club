@@ -20,24 +20,25 @@ export const Hero: React.FC<{
       <div className="hero-wash" aria-hidden="true" />
       <div className="falcon-container hero-layout">
         <div className="hero-copy">
-          <span className="eyebrow">נץ המדבר · DESERT FALCON</span>
+          <span className="eyebrow">נץ המדבר · DESERT FALCON IPSC</span>
           <h1>נץ המדבר</h1>
           <p className="hero-motto">
-            מתאמנים יחד. מתקדמים יחד.
+            מתאמנים יחד. <span>מתקדמים יחד.</span>
           </p>
           <div className="hero-actions">
             <button className="button-primary" onClick={onOpenCourseModal}>
-              <Crosshair size={20} />
+              <Crosshair size={18} />
               <span>הרשמה לקורס</span>
             </button>
             <button className="button-outline" onClick={onOpenJoinModal}>
-              <UserPlus size={20} />
+              <UserPlus size={18} />
               <span>הצטרפות למועדון</span>
             </button>
           </div>
         </div>
       </div>
       <div className="hero-intro falcon-container">
+        <strong>מועדון קליעה מעשית מוביל בישראל</strong>
         <p>{pages.heroBody}</p>
       </div>
     </section>

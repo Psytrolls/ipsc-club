@@ -4,7 +4,7 @@ import { Target, Zap, ShieldCheck } from "lucide-react";
 export const SportSection: React.FC = () => {const {pages}=useApp(); return (
   <section id="sport" className="section-space sport-section">
     <div className="falcon-container">
-      <div className="eyebrow">02 — הספורט</div>
+      <div className="eyebrow">02 / ענף הספורט</div>
       <div className="section-heading">
         <h2>{pages.sportTitle}</h2>
         <p>{pages.sportBody}</p>

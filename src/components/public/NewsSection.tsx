@@ -34,7 +34,7 @@ export const NewsSection: React.FC<{initialCategory?:NewsCategory|"all"|"matches
   return (
     <section id="news" className="section-space news-section">
       <div className="falcon-container">
-        <div className="eyebrow">03 — מהשטח ומהעולם</div>
+        <div className="eyebrow">03 / חדשות ועדכונים מהשטח</div>
         <div className="section-heading">
           <h2>חדשות ותחרויות ירי מעשי</h2>
           <div className="filter-tabs" aria-label="סינון חדשות ותחרויות">

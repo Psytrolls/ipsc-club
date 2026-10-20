@@ -6,25 +6,25 @@ export const AboutSection: React.FC = () => {const {pages}=useApp(); return (
   <section id="about" className="section-space">
     <div className="falcon-container about-layout">
       <div>
-        <div className="eyebrow">01 — המועדון</div>
+        <div className="eyebrow">01 / המועדון</div>
         <h2>{pages.aboutTitle}</h2>
         <p className="section-copy">{pages.aboutBody}</p>
-        <details className="about-details"><summary className="button-outline">קראו עוד</summary><div className="value-list">
+        <details className="about-details" open><summary className="button-outline" style={{display:'none'}}>קראו עוד</summary><div className="value-list">
           {[
             {
               icon: Users,
               title: "קהילה שמתקדמת יחד",
-              text: "סביבה תומכת ליורים חדשים ומנוסים.",
+              text: "סביבה מקצועית ותומכת ליורים מתחילים ומנוסים כאחד.",
             },
             {
               icon: Target,
-              title: "התקדמות שאפשר לראות",
-              text: "תוצאות אישיות ומעקב לאורך זמן.",
+              title: "דיוק ומעקב תוצאות",
+              text: "ניתוח Hit Factor אישי, סטטיסטיקות ומעקב דינמי לאורך זמן.",
             },
             {
               icon: MessageSquare,
-              title: "הדרכה עם כיוון",
-              text: "משוב ודגשים ברורים לאימון הבא.",
+              title: "הדרכה אישית ממוקדת",
+              text: "משוב מדריכים מוסמכים ודגשים ברורים ומעשיים לכל אימון.",
             },
           ].map(({ icon: Icon, title, text }) => (
             <div key={title}>
