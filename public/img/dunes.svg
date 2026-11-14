@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 520">
+  <!-- Fallback hero background. Drop a real photo at /img/hero.jpg and it is used instead. -->
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#F6EBD7"/><stop offset=".6" stop-color="#F0D6A8"/><stop offset="1" stop-color="#E6B77C"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="520" fill="url(#sky)"/>
+  <circle cx="230" cy="300" r="70" fill="#FBE7B5" opacity=".9"/>
+  <path d="M0 360 C160 310 300 330 450 355 C620 385 760 325 920 335 C1040 342 1130 365 1200 350 L1200 520 L0 520Z" fill="#D9A56B"/>
+  <path d="M0 410 C140 375 280 405 430 412 C600 420 700 382 870 395 C1010 406 1110 420 1200 405 L1200 520 L0 520Z" fill="#C48A52"/>
+  <path d="M0 470 C180 450 340 470 520 475 C700 480 860 455 1020 462 C1100 466 1160 475 1200 472 L1200 520 L0 520Z" fill="#A66D3C"/>
+</svg>

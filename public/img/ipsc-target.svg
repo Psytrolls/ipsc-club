@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="24 52 436 540" role="img" aria-label="IPSC target with A, C and D zones">
+  <g fill="#E9AE6E" stroke="#000" stroke-linejoin="miter">
+    <polygon points="172,62 312,62 450,235 450,410 312,584 172,584 34,410 34,235" stroke-width="1.6"/>
+    <polygon points="175,65 309,65 447,237 447,408 309,581 175,581 37,408 37,237" fill="none" stroke-width="1"/>
+    <polygon points="172,62 312,62 378,238 378,370 288,475 196,475 105,370 105,238" stroke-width="1.5"/>
+    <polygon points="218,83 265,83 310,235 310,312 265,380 218,380 174,312 174,235" stroke-width="1.5"/>
+  </g>
+  <g font-family="Heebo, Arial, Helvetica, sans-serif" font-size="22" fill="#000" text-anchor="middle" dominant-baseline="middle">
+    <text x="73" y="237">D</text><text x="145" y="237">C</text><text x="240" y="237">A</text><text x="342" y="237">C</text><text x="411" y="237">D</text>
+  </g>
+</svg>

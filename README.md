@@ -1,33 +1,41 @@
-# Desert Falcon — hosted private review
+# Desert Falcon / נץ המדבר
 
-Hebrew RTL club website with admin, instructor and shooter accounts, phone-number and password authentication, D1 persistence, training booking/waitlist, results and feedback. Payments take place on site.
+Роли можно совмещать (например, инструктор + член): админ отмечает несколько ролей у пользователя, в интерфейсе появляется переключатель «חבר / מדריך / ניהול».
 
-This Site is owner-private for review. The hosting dispatcher requires the owner's ChatGPT sign-in before serving the application. Open member login and select the administrator password setup button. The trusted hosting identity supplies the account email and name; it does not replace the club password login.
+Сайт клуба: публичная часть + личные кабинеты (член, инструктор, администратор). Node.js + SQLite, интерфейс на иврите (RTL).
 
-Bootstrap is enabled only by PRIVATE_OWNER_SETUP=1 for this owner-private review. Before enabling broader or public access, disable this flag and retain existing administrative accounts. A new administrator is created only when none exists; the initial hosting identity is bound server-side and cannot bootstrap another administrator. No default users, passwords, keys or activation tokens are committed.
+## Запуск
+```bash
+npm install
+npm run init-admin -- 0501234567 "Имя" "Password1"   # первый защищённый супер-админ. Аккаунтов по умолчанию НЕТ
+npm start                                             # http://localhost:3000
+```
+Демо-данные (только для локальной проверки, пароли публичные): `npm run seed-demo` на пустой базе.
 
-D1 access preloads a request-local snapshot and records changes. Commits use a revision compare-and-swap followed by revision-guarded statements in one D1 batch transaction; a conflict retries the whole operation before returning its response. This retains capacity, invitation consumption and role-change consistency across concurrent requests. Product data is stored in indexed D1 tables. For a much larger club, narrow request snapshots to the specific user/training to reduce memory and query work.
+## Проверки
+- `npm test` — 81 автотест по сценариям приёмки из спеки (гонка за последнее место, лист ожидания, права доступа, Excel, график и т.д.)
+- `npm run backup` — консистентная копия БД + приватных фото в `data/backups/<время>/`. Перед запуском в прод проверить восстановление.
 
-The site requires HTTPS and its configured APP_ORIGIN; Password hashes use bcrypt cost 12, a random salt, minimum 6 characters including letters and digits and a strict 72 UTF-8 byte limit. After five failed attempts the account is blocked for 15 minutes; login responses do not distinguish missing users from incorrect passwords. Session cookies are secure, HttpOnly and SameSite=Strict. The server verifies memberships and record-level authorization. Persistent IP/request limits are enforced before the application. Invite links are manually handed to verified users; automated email delivery is not configured. Decorative range photo is an illustration and should be replaced with a real club photo before public launch.
+## Переменные окружения
+| Переменная | Назначение |
+|---|---|
+| `PORT` | порт (по умолчанию 3000) |
+| `DF_DATA_DIR` | каталог данных (БД и фото), по умолчанию `./data` |
+| `DF_SECURE_COOKIES=1` | cookie только по HTTPS (включить в проде) |
+| `DF_TRUST_PROXY=1` | если стоит за reverse proxy (nginx/Caddy), для корректного IP и HTTPS |
 
-Build: npm ci, npm run build. Tests: npm test; node scripts/qa-worker.mjs. Drizzle owns schema migrations in drizzle/. Publishing uses the Sites workflow and applies migrations before deployment. Do not alter already-applied migrations.
+HTTPS обеспечивает reverse proxy (Caddy/nginx + Let's Encrypt); приложение само TLS не терминирует.
 
-Source: Cloudflare's Express runtime integration https://developers.cloudflare.com/workers/tutorials/deploy-an-express-app/; Password storage https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html.
+## Структура
+- `server.js` — API, права, сессии, блокировка входа, Excel
+- `training-logic.js` — запись, вместимость, лист ожидания (все изменения мест в транзакциях + уникальный индекс в БД)
+- `db.js` — схема SQLite, настройки, аудит
+- `public/` — фронтенд (ванильный JS, без внешних зависимостей, шрифты локально)
+- `public/img/logo.png` — логотип клуба; `public/img/dunes.svg` — фон шапок внутренних страниц; `hero-1600.jpg`/`hero-800.jpg` — фон главной (стрелок), `events.jpg`, `range-officers.jpg` — фото карточек и страницы «О клубе», `ipsc-target.svg` — нарисованная мишень IPSC (страница IPSC). Чтобы заменить фото, подложите файлы с теми же именами
 
-Existing Passkey-only owner accounts can set their first password from the trusted owner bootstrap. Old keys and sessions are revoked on activation. The owner-private site provides a separate explicit owner recovery button tied to its existing hosting identity. Other users receive one-use links from the club administrator. Public rollout must disable PRIVATE_OWNER_SETUP, including owner hosting recovery.
-
-Profile photo uploads are reduced in the browser to a 256px WebP thumbnail without original metadata, limited to 65KB on the server, MIME/magic checked and stored in private R2. Image reads require access to that member. DOB, shooter number, handgun division and classification are editable in member and admin profiles. Fields describe member-provided data; there is no federation verification integration.
-
-Course information references Rishon IPSC, Rehovot range and Northarm course pages, reviewed 2026-10-01. Applications without a personal licence are accepted for manual eligibility/approval review. Do not transfer another club's schedules, banking details or operational policies to Desert Falcon.
-
-Social links: administrator → עריכת עמודי האתר → רשתות חברתיות ויצירת קשר. Save HTTPS links for WhatsApp (wa.me, api.whatsapp.com, chat.whatsapp.com), Instagram and Facebook. Only configured links appear in the footer; clear a field to hide its button. Links are validated server-side and editable only by administrators.
-
-2026-10-01 update: sign-in uses normalized phone numbers only (Israeli local/international forms). Existing passwords remain valid. The platform owner is the server-derived superadministrator: other administrators cannot edit, suspend, remove, reset or replace their profile photo. Only self-service password change or trusted owner recovery can change this password. An existing owner without a phone can bind one during trusted owner recovery. Five failed attempts block an account for 15 minutes; expiry resets the attempt window. The requested six-character floor is a product choice, not a claim of current best-practice password strength; longer passwords remain supported.
-
-Exercise planner: assigned instructors configure 1–30 exercises per training, paper/hits per paper/plates/poppers/no-shoots, approved conditions, division and power factor on each result. Paper and metal totals must match the configured composition. Server owns scoring. Supported measurement types are Hit Factor and points; custom time-plus scoring is not configured. Exercises and result snapshots are immutable; edits create new versions, unchanged library copies retain comparable versions. Club copies of official references are not official classification submissions.
-
-Reference library: ten short-course composition entries from https://www.ipsc.org/match-sanctioning/classifier-stages/ reviewed 2026-10-01. Original documents remain linked through that catalog. Ten original IPSC image previews are included under public/assets/exercises, with their source links recorded in server/exercise-images.json. Instructors must confirm actual range suitability and record complete conditions before scoring; examples are not pre-approved for any indoor range.
-
-Statistics: separate version/division/power-factor/scoring groups. Paper-only A percentage includes paper misses in denominator. Base median first 3 and recent median last 5 require at least 8 non-overlapping results; zero HF base has no percentage. Accuracy changes use percentage points; time decreases are improvements. Display thresholds 3% time and 2 percentage points accuracy are configurable product constants in src/lib/statistics.ts, not validated sporting norms. Legacy results without context remain in history. Instructor confirmation is required to complete a focus item.
-
-Exercise image previews: select a template in the instructor exercise planner to see its image. Tap to enlarge. Original IPSC diagrams retain their source appearance; changing target counts updates the inventory illustration, not the original image. Custom HTTPS image links and public Google Drive image links are supported; unavailable images show an original-link fallback.
+## Что ещё не решено клубом (в коде вынесено в настройки/одно место)
+- срок отмены записи и время на подтверждение места из листа ожидания → «הגדרות» в админке (по умолчанию 3 ч и 12 ч)
+- политика паролей → `lib.js`, `PASSWORD_POLICY` (сейчас: не менее 6 символов, буква + цифра)
+- восстановление аккаунта → сейчас сброс администратором (временный пароль)
+- канал уведомлений → сейчас только внутри приложения (раздел «הודעות»), без SMS/почты
+- срок хранения обращений и данных → автоматического удаления нет
