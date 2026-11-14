@@ -100,8 +100,10 @@ app.get('/api/public/info', (req, res) => {
   const s = allSettings();
   const links = {};
   for (const k of ['ipsc_global', 'ipsc_israel', 'facebook', 'instagram', 'youtube', 'whatsapp']) if (s['link_' + k]) links[k] = s['link_' + k];
+  const placeName = s.location_name || '';
+  const place = placeName ? { name: placeName, ...navFor({ location: placeName }) } : null;
   res.json({
-    links,
+    links, place,
     news: db.prepare('SELECT id,title,body,category,created_at FROM news WHERE published=1 ORDER BY created_at DESC, id DESC LIMIT 30').all(),
   });
 });

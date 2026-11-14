@@ -102,6 +102,9 @@ if ('serviceWorker' in navigator) window.addEventListener('load', () => navigato
 
 function footer() {
   return h('footer', { class: 'foot' }, h('div', { class: 'wrap' }, h('strong', null, 'נץ המדבר · Desert Falcon'),
+    (() => { const pl = state.info.place; if (!pl) return null;
+      return h('p', { class: 'small foot-place' }, icon('pin'), pl.name + (pl.address ? ' · ' + pl.address : '') + ' · ',
+        h('a', { href: pl.maps, target: '_blank', rel: 'noopener noreferrer' }, 'Google Maps'), ' · ', h('a', { href: pl.waze, target: '_blank', rel: 'noopener noreferrer' }, 'Waze')); })(),
     h('p', { class: 'small' }, '© ' + new Date().getFullYear() + ' נץ המדבר · Desert Falcon. כל הזכויות שמורות.'), P.linkList('plain'), installEvent ? installBtn() : null));
 }
 

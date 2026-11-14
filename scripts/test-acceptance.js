@@ -363,6 +363,9 @@ const section = s => console.log('\n' + s);
   r = await coach.get(`/api/instructor/trainings/${t13}/live`);
   ok(r.data.participants.find(p => p.id === m1).records.length === 3 && r.data.participants.find(p => p.id === m1).attendance === 'present', 'הרשימה החיה מציגה נוכחות ותוצאות');
 
+  r = await pub.get('/api/public/info');
+  ok(r.data.place && r.data.place.address.includes('MALL 7') && r.data.place.waze.includes('waze.com') && r.data.place.maps.startsWith('https://'), 'כתובת המטווח וקישורי ניווט מוצגים בפוטר לכל אחד');
+
   console.log(`\n${pass} passed, ${fail} failed`);
   server.close();
   process.exit(fail ? 1 : 0);

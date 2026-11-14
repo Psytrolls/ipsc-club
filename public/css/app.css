@@ -497,3 +497,6 @@ dialog { border-radius: 8px; } dialog::backdrop { background: rgba(21,19,15,.62)
 .seg.wide button[aria-pressed="true"] { background: var(--ink); color: #fff; }
 .seg.big button { min-height: 56px; padding: 12px 20px; }
 .live .rec { margin-top: 12px; }
+
+.foot-place { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin: 8px 0 0; }
+.foot-place svg { width: 18px; height: 18px; flex: none; }
