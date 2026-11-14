@@ -3,7 +3,7 @@
 // transaction (better-sqlite3 serialises writers), so two members taking the last seat can
 // never both succeed — and a partial unique index backs that up at the DB level.
 const { db, nowIso, notify, getSetting } = require('./db');
-const { HttpError, fmtIsrael, hasRole } = require('./lib');
+const { HttpError, fmtIsrael, hasRole, utcToIsraelLocal } = require('./lib');
 
 const LIVE = ['confirmed', 'waitlist', 'offered'];
 
@@ -161,10 +161,34 @@ function notifyChange(trainingId, before, after) {
 
 // Expired offers are swept (and committed) BEFORE an action runs, so a rejected action
 // (e.g. accepting an expired offer) cannot roll the expiry back.
+// In-site reminders for confirmed registrants: once ~24h before and once ~1h before the start.
+const remind = db.transaction(() => {
+  const now = Date.now();
+  const soon = db.prepare(`SELECT * FROM trainings WHERE status IN ('open','closed') AND starts_at > ? AND starts_at <= ?`)
+    .all(new Date(now).toISOString(), new Date(now + 24 * 3600e3).toISOString());
+  let sent = 0;
+  for (const t of soon) {
+    const mins = (new Date(t.starts_at).getTime() - now) / 60000;
+    const kind = mins <= 60 ? '1h' : '24h';
+    const hhmm = utcToIsraelLocal(t.starts_at).slice(11);
+    const regs = db.prepare(`SELECT user_id FROM registrations WHERE training_id=? AND status='confirmed'`).all(t.id);
+    for (const r of regs) {
+      const done = db.prepare('SELECT 1 FROM reminders_sent WHERE training_id=? AND user_id=? AND kind=?');
+      if (done.get(t.id, r.user_id, kind) || (kind === '24h' ? false : done.get(t.id, r.user_id, '1h'))) continue;
+      db.prepare('INSERT INTO reminders_sent(training_id,user_id,kind,sent_at) VALUES(?,?,?,?)').run(t.id, r.user_id, kind, nowIso());
+      if (kind === '1h') db.prepare(`INSERT OR IGNORE INTO reminders_sent(training_id,user_id,kind,sent_at) VALUES(?,?,'24h',?)`).run(t.id, r.user_id, nowIso());
+      notify(r.user_id, 'reminder', kind === '1h' ? 'האימון מתחיל בעוד כשעה' : 'תזכורת: אימון מחר',
+        `"${t.title}" בשעה ${hhmm}, ${t.location}.`, t.id);
+      sent++;
+    }
+  }
+  return sent;
+});
+
 const sweeping = fn => (...args) => { sweep(); return fn(...args); };
 
 module.exports = {
-  LIVE, getTraining, counts, taken, promote, sweep, liveReg, cancelTraining, notifyChange,
+  LIVE, getTraining, counts, taken, promote, sweep, remind, liveReg, cancelTraining, notifyChange,
   register: sweeping(register), joinWaitlist: sweeping(joinWaitlist), leaveWaitlist: sweeping(leaveWaitlist),
   cancelRegistration: sweeping(cancelRegistration), acceptOffer: sweeping(acceptOffer), declineOffer: sweeping(declineOffer),
 };

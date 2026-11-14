@@ -476,3 +476,17 @@ dialog { border-radius: 8px; } dialog::backdrop { background: rgba(21,19,15,.62)
 .sim .btn:not(.dark):not(.soft) { background: var(--hi); color: var(--ink); } .sim .btn:not(.dark):not(.soft):hover { background: #FF8645; }
 .sim .tbox img { filter: brightness(1.2) saturate(.9) drop-shadow(0 4px 0 rgba(21,19,15,.22)); }
 .sim-body { justify-content: flex-start; } .sim-side { max-width: 340px; }
+
+/* ---------- exercise builder ---------- */
+.lay-svg { width: 100%; height: auto; display: block; direction: ltr; touch-action: none; border: 1.5px solid #8E887C; border-radius: 4px; background: #ECE9E3; user-select: none; -webkit-user-select: none; }
+.lay-svg.view { touch-action: auto; border-color: var(--line); }
+.lay-item { cursor: grab; } .lay-item:active { cursor: grabbing; } .lay-item:focus { outline: none; }
+.lay-pal { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
+.lay-stats { margin: 10px 0 4px; font-weight: 700; }
+.lay-editor { max-width: 620px; }
+.stage-card { display: grid; gap: 10px; }
+.stage-card .lay-svg { max-width: 460px; }
+.stage-head { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.stage-head h3 { margin: 0; flex: 1 1 auto; }
+.stage-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.pre { white-space: pre-line; margin: 0; }

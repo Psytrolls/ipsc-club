@@ -2,6 +2,7 @@ import { h, s, api, field, formAlert, busy, toast, fmtDateTime, fmtDay, fmtFull,
 import { icon } from './icons.js';
 import { state, go, homeFor } from './state.js';
 import { targetBox, hitsFor, countdown } from './live.js';
+import { layoutView, layoutStats, statsText } from './stage-builder.js';
 
 const statusChip = t => {
   if (t.mine) {
@@ -68,8 +69,16 @@ function trainingActions(t, rerender) {
   return box;
 }
 
+function planBlock(stages) {
+  if (!stages.length) return null;
+  return h('section', { class: 'gap2' }, h('h2', null, 'תכנית האימון'),
+    h('ul', { class: 'list' }, stages.map((st, i) => h('li', { class: 'item stage-card' },
+      h('h3', null, `${i + 1}. ${st.name}`), layoutView(st.layout), h('p', { class: 'small muted' }, statsText(layoutStats(st.layout.items))),
+      st.description ? h('p', { class: 'pre' }, st.description) : null))));
+}
 export async function trainingDetail({ params }) {
   const wrap = h('div', { class: 'wrap' });
+  const plan = planBlock((await api('GET', `/api/trainings/${params.id}/stages`).catch(() => ({ items: [] }))).items);
   const draw = t => {
     wrap.replaceChildren(
       h('p', { class: 'gap' }, h('a', { href: '#/m/trainings' }, '→ חזרה לאימונים')),
@@ -78,11 +87,14 @@ export async function trainingDetail({ params }) {
         dt('מועד', fmtDateTime(t.starts_at)), dt('מקום', t.location), dt('מדריך', t.instructor || '—'),
         dt('מקומות', `${t.seats_taken} תפוסים מתוך ${t.capacity}` + (t.seats_held ? ` · ${t.seats_held} שמורים להצעה` : '')),
         t.notes ? dt('הערות', t.notes) : null), seatsBar(t)),
-      h('div', { class: 'gap' }), trainingActions(t, draw));
+      h('div', { class: 'gap' }), trainingActions(t, draw),
+      t.mine && ['confirmed', 'offered'].includes(t.mine.status) && t.status !== 'cancelled' ? h('div', { class: 'gap' }, calLink(t)) : null,
+      plan);
   };
   draw((await api('GET', '/api/trainings/' + params.id)).training);
   return wrap;
 }
+const calLink = t => h('a', { class: 'btn soft sm', href: `/api/trainings/${t.id}/calendar.ics`, download: '' }, icon('calendar'), 'הוספה ליומן');
 const dt = (k, v) => h('div', null, h('dt', { class: 'small muted' }, k), h('dd', { class: 'dd' }, v));
 
 export async function mine() {
@@ -190,7 +202,7 @@ export async function dashboard() {
     h('div', { class: 'grid two gap' },
       h('section', { class: 'card' }, h('h3', { class: 'section-title' }, icon('calendar'), 'האימון הבא'),
         next ? h('div', { class: 'next-card' }, countdown(next.starts_at), h('div', { class: 'when' }, fmtDateTime(next.starts_at)), h('div', null, next.title),
-          h('div', { class: 'meta muted' }, icon('pin'), next.location), statusLine(next), h('a', { class: 'btn block', href: '#/m/training/' + next.id }, 'פרטי האימון', icon('left')))
+          h('div', { class: 'meta muted' }, icon('pin'), next.location), statusLine(next), h('a', { class: 'btn block', href: '#/m/training/' + next.id }, 'פרטי האימון', icon('left')), h('div', { class: 'gap' }, calLink(next)))
           : h('div', { class: 'next-card' }, h('p', { class: 'muted' }, 'אין לך אימון קרוב.'), h('a', { class: 'btn block', href: '#/m/trainings' }, 'הרשמה לאימון', icon('left')))),
       h('section', { class: 'card' }, h('h3', { class: 'section-title' }, icon('chat'), 'דגשים מהמדריך'),
         lastFb ? h('div', { class: 'quote' }, h('p', null, lastFb.feedback), h('span', { class: 'small muted' }, lastFb.title + ' · ' + fmtDay(lastFb.starts_at))) : h('p', { class: 'muted' }, 'עדיין אין משוב מפורסם.'))),

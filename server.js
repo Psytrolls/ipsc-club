@@ -469,6 +469,154 @@ app.put('/api/instructor/trainings/:id/members/:uid', roles('instructor'), wrap(
   res.json(loadMemberSheet(t.id, uid));
 }));
 
+// ---------- calendar (.ics) ----------
+const icsEsc = v => String(v ?? '').replace(/\\/g, '\\\\').replace(/;/g, '\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
+const icsTime = d => new Date(d).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+function icsFold(line) { // RFC 5545: lines are at most 75 octets, continuation lines start with a space
+  const out = []; let cur = '', bytes = 0;
+  for (const ch of line) {
+    const n = Buffer.byteLength(ch);
+    if (bytes + n > (out.length ? 74 : 75)) { out.push(cur); cur = ''; bytes = 0; }
+    cur += ch; bytes += n;
+  }
+  out.push(cur);
+  return out.join('\r\n ');
+}
+app.get('/api/trainings/:id/calendar.ics', needLogin, wrap((req, res) => {
+  const t = db.prepare('SELECT * FROM trainings WHERE id=?').get(idParam(req.params.id));
+  const mine = t && (db.prepare(`SELECT 1 FROM registrations WHERE training_id=? AND user_id=? AND status IN ('confirmed','offered','waitlist')`).get(t.id, req.user.id)
+    || t.instructor_id === req.user.id || L.hasRole(req.user, 'admin'));
+  if (!t || !mine) throw new HttpError(404, 'האימון לא נמצא');
+  if (t.status === 'cancelled') throw new HttpError(409, 'האימון בוטל');
+  const start = new Date(t.starts_at), end = new Date(start.getTime() + 2 * 3600e3); // trainings have no end time; 2h is a placeholder
+  const alarm = (trigger, text) => ['BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:' + icsEsc(text), 'TRIGGER:' + trigger, 'END:VALARM'];
+  const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Desert Falcon//IPSC Club//HE', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH',
+    'BEGIN:VEVENT', `UID:training-${t.id}@desert-falcon`, 'DTSTAMP:' + icsTime(new Date()), `SEQUENCE:${Math.floor(new Date(t.updated_at).getTime() / 60000)}`,
+    'DTSTART:' + icsTime(start), 'DTEND:' + icsTime(end), 'SUMMARY:' + icsEsc(t.title), 'LOCATION:' + icsEsc(t.location),
+    'DESCRIPTION:' + icsEsc('נץ המדבר. ' + (t.notes || '') + ' משך האימון בקירוב: שעתיים.'),
+    ...alarm('-P1D', 'מחר: ' + t.title), ...alarm('-PT1H', 'בעוד שעה: ' + t.title), 'END:VEVENT', 'END:VCALENDAR'];
+  res.set({ 'Content-Type': 'text/calendar; charset=utf-8', 'Content-Disposition': `attachment; filename="training-${t.id}.ics"`, 'Cache-Control': 'private, no-store' });
+  res.send(lines.map(icsFold).join('\r\n') + '\r\n');
+}));
+
+// publish every draft result sheet of a training in one step (the instructor's own training)
+app.post('/api/instructor/trainings/:id/publish-drafts', roles('instructor'), wrap((req, res) => {
+  const t = instructorTraining(req);
+  if (['draft', 'cancelled'].includes(t.status)) throw new HttpError(409, 'לא ניתן לפרסם תוצאות באימון זה');
+  const n = db.transaction(() => {
+    const rows = db.prepare(`SELECT DISTINCT user_id FROM (
+        SELECT user_id FROM results WHERE training_id=? AND published=0 UNION SELECT user_id FROM feedback WHERE training_id=? AND published=0)`).all(t.id, t.id);
+    let count = 0;
+    for (const { user_id } of rows) {
+      if (!db.prepare(`SELECT 1 FROM registrations WHERE training_id=? AND user_id=? AND status='confirmed'`).get(t.id, user_id)) continue;
+      db.prepare('UPDATE results SET published=1 WHERE training_id=? AND user_id=? AND published=0').run(t.id, user_id);
+      db.prepare('UPDATE feedback SET published=1 WHERE training_id=? AND user_id=? AND published=0').run(t.id, user_id);
+      notify(user_id, 'results_published', 'פורסמו תוצאות חדשות', `התוצאות והמשוב מהאימון "${t.title}" זמינים באזור האישי.`, t.id);
+      count++;
+    }
+    if (count) audit(req.user.id, 'publish_drafts', `training:${t.id}`, { count });
+    return count;
+  })();
+  res.json({ published: n });
+}));
+
+// ---------- exercise builder: optional plan of stages per training ----------
+const LAYOUT_TYPES = new Set(['paper', 'noshoot', 'popper', 'wall', 'start']);
+const MAX_STAGES = 20;
+function parseLayout(v) {
+  if (v === undefined || v === null) return { items: [] };
+  if (typeof v === 'string') { try { v = JSON.parse(v); } catch { throw bad('סכמת התרגיל לא תקינה'); } }
+  if (!v || !Array.isArray(v.items)) throw bad('סכמת התרגיל לא תקינה');
+  if (v.items.length > 60) throw bad('בסכמה אפשר עד 60 פריטים');
+  const r1 = n => Math.round(n * 10) / 10;
+  return { items: v.items.map(it => {
+    if (!it || !LAYOUT_TYPES.has(it.t)) throw bad('סוג פריט לא תקין בסכמה');
+    const rot = numIn(it.r === undefined ? 0 : it.r, -720, 720, 'סיבוב');
+    return { t: it.t, x: r1(numIn(it.x, 0, 400, 'מיקום')), y: r1(numIn(it.y, 0, 300, 'מיקום')), r: ((Math.round(rot) % 360) + 360) % 360 };
+  }) };
+}
+const stageOut = r => ({ id: r.id, training_id: r.training_id, position: r.position, name: r.name, description: r.description || '', exercise_id: r.exercise_id, exercise_name: r.exercise_name || null, layout: JSON.parse(r.layout) });
+const stageRows = tid => db.prepare(`SELECT s.*, e.name exercise_name FROM stages s LEFT JOIN exercises e ON e.id=s.exercise_id WHERE s.training_id=? ORDER BY s.position, s.id`).all(tid).map(stageOut);
+function stageBody(b) {
+  const name = str(b.name, 2, 80, 'שם התרגיל');
+  const description = optStr(b.description, 1500, 'תיאור');
+  let exId = null;
+  if (b.exercise_id !== undefined && b.exercise_id !== null && b.exercise_id !== '') {
+    exId = intIn(b.exercise_id, 1, 1e9, 'תרגיל');
+    if (!db.prepare('SELECT 1 FROM exercises WHERE id=? AND active=1').get(exId)) throw bad('התרגיל שנבחר אינו קיים במאגר');
+  }
+  return { name, description, exId, layout: JSON.stringify(parseLayout(b.layout)) };
+}
+function ownedStage(req) {
+  const s = db.prepare('SELECT * FROM stages WHERE id=?').get(idParam(req.params.sid));
+  if (!s) throw new HttpError(404, 'התרגיל לא נמצא');
+  const t = T.getTraining(s.training_id);
+  if (t.instructor_id !== req.user.id) throw new HttpError(403, 'האימון הזה אינו משויך אליך');
+  if (t.status === 'cancelled') throw new HttpError(409, 'האימון בוטל');
+  return { s, t };
+}
+app.get('/api/trainings/:id/stages', roles('member'), wrap((req, res) => {
+  const t = T.getTraining(idParam(req.params.id));
+  const mine = T.liveReg(t.id, req.user.id);
+  if (t.status === 'draft' || (!mine && t.status !== 'open')) throw new HttpError(404, 'האימון לא נמצא');
+  res.json({ items: stageRows(t.id) });
+}));
+app.get('/api/instructor/trainings/:id/stages', roles('instructor'), wrap((req, res) => {
+  const t = instructorTraining(req);
+  res.json({ items: stageRows(t.id) });
+}));
+app.post('/api/instructor/trainings/:id/stages', roles('instructor'), wrap((req, res) => {
+  const t = instructorTraining(req);
+  if (t.status === 'cancelled') throw new HttpError(409, 'האימון בוטל');
+  if (db.prepare('SELECT COUNT(*) n FROM stages WHERE training_id=?').get(t.id).n >= MAX_STAGES) throw bad(`אפשר עד ${MAX_STAGES} תרגילים באימון`);
+  const b = stageBody(req.body || {});
+  const pos = db.prepare('SELECT COALESCE(MAX(position),0)+1 p FROM stages WHERE training_id=?').get(t.id).p;
+  const now = nowIso();
+  const id = Number(db.prepare(`INSERT INTO stages(training_id,position,name,description,exercise_id,layout,created_by,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?)`)
+    .run(t.id, pos, b.name, b.description, b.exId, b.layout, req.user.id, now, now).lastInsertRowid);
+  audit(req.user.id, 'stage_create', `training:${t.id} stage:${id}`, null);
+  res.json({ stage: stageRows(t.id).find(x => x.id === id) });
+}));
+app.put('/api/instructor/stages/:sid', roles('instructor'), wrap((req, res) => {
+  const { s, t } = ownedStage(req);
+  const b = stageBody(req.body || {});
+  db.prepare('UPDATE stages SET name=?, description=?, exercise_id=?, layout=?, updated_at=? WHERE id=?').run(b.name, b.description, b.exId, b.layout, nowIso(), s.id);
+  audit(req.user.id, 'stage_edit', `training:${t.id} stage:${s.id}`, null);
+  res.json({ stage: stageRows(t.id).find(x => x.id === s.id) });
+}));
+app.delete('/api/instructor/stages/:sid', roles('instructor'), wrap((req, res) => {
+  const { s, t } = ownedStage(req);
+  db.prepare('DELETE FROM stages WHERE id=?').run(s.id);
+  audit(req.user.id, 'stage_delete', `training:${t.id} stage:${s.id}`, null);
+  res.json({ ok: true });
+}));
+app.post('/api/instructor/stages/:sid/move', roles('instructor'), wrap((req, res) => {
+  const { s, t } = ownedStage(req);
+  const dir = req.body && req.body.dir;
+  if (!['up', 'down'].includes(dir)) throw bad('כיוון לא תקין');
+  const all = stageRows(t.id), i = all.findIndex(x => x.id === s.id), j = dir === 'up' ? i - 1 : i + 1;
+  if (j >= 0 && j < all.length) {
+    db.transaction(() => { const up = db.prepare('UPDATE stages SET position=? WHERE id=?'); up.run(j + 1, all[i].id); up.run(i + 1, all[j].id); })();
+  }
+  res.json({ items: stageRows(t.id) });
+}));
+app.post('/api/instructor/stages/:sid/copy', roles('instructor'), wrap((req, res) => {
+  const { s } = ownedStage(req);
+  const target = req.body && req.body.training_id ? T.getTraining(intIn(req.body.training_id, 1, 1e9, 'אימון')) : T.getTraining(s.training_id);
+  if (target.instructor_id !== req.user.id) throw new HttpError(403, 'האימון הזה אינו משויך אליך');
+  if (target.status === 'cancelled') throw new HttpError(409, 'האימון בוטל');
+  if (db.prepare('SELECT COUNT(*) n FROM stages WHERE training_id=?').get(target.id).n >= MAX_STAGES) throw bad(`אפשר עד ${MAX_STAGES} תרגילים באימון`);
+  const pos = db.prepare('SELECT COALESCE(MAX(position),0)+1 p FROM stages WHERE training_id=?').get(target.id).p;
+  const now = nowIso();
+  const id = Number(db.prepare(`INSERT INTO stages(training_id,position,name,description,exercise_id,layout,created_by,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?)`)
+    .run(target.id, pos, s.name + (target.id === s.training_id ? ' (עותק)' : ''), s.description, s.exercise_id, s.layout, req.user.id, now, now).lastInsertRowid);
+  res.json({ stage: stageRows(target.id).find(x => x.id === id) });
+}));
+// the instructor's other trainings, to copy a stage into
+app.get('/api/instructor/trainings-lite', roles('instructor'), (req, res) => {
+  res.json({ items: db.prepare(`SELECT id,title,starts_at FROM trainings WHERE instructor_id=? AND status<>'cancelled' ORDER BY starts_at DESC LIMIT 40`).all(req.user.id) });
+});
+
 app.get('/api/exercises', needLogin, (req, res) => {
   const all = L.hasRole(req.user, 'admin');
   res.json({ items: db.prepare(`SELECT id,name,description,active FROM exercises ${all ? '' : 'WHERE active=1'} ORDER BY name`).all() });
@@ -812,7 +960,7 @@ app.get('/api/admin/audit', admin, (req, res) => {
 
 // ---------- static + errors ----------
 app.use('/api', (req, res) => res.status(404).json({ error: 'לא נמצא' }));
-app.use(express.static(path.join(__dirname, 'public'), { extensions: ['html'], maxAge: '5m' }));
+app.use(express.static(path.join(__dirname, 'public'), { extensions: ['html'], maxAge: '5m', setHeaders: (res, file) => { if (/[\\/]sw\.js$/.test(file)) res.set('Cache-Control', 'no-cache'); } }));
 
 app.use((err, req, res, next) => { // eslint-disable-line no-unused-vars
   if (err instanceof HttpError) return res.status(err.status).json({ error: err.message, code: err.code });
@@ -824,7 +972,7 @@ app.use((err, req, res, next) => { // eslint-disable-line no-unused-vars
 });
 
 // expire waitlist offers periodically (also swept lazily on every relevant request)
-setInterval(() => { try { T.sweep(); } catch (e) { console.error('sweep failed', e); } }, 20000).unref();
+setInterval(() => { try { T.sweep(); T.remind(); } catch (e) { console.error('sweep failed', e); } }, 20000).unref();
 T.sweep();
 
 module.exports = app;

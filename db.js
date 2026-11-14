@@ -99,6 +99,24 @@ CREATE TABLE IF NOT EXISTS feedback (
   author_id INTEGER REFERENCES users(id), updated_at TEXT NOT NULL,
   PRIMARY KEY (training_id, user_id)
 );
+CREATE TABLE IF NOT EXISTS stages (
+  id INTEGER PRIMARY KEY,
+  training_id INTEGER NOT NULL REFERENCES trainings(id),
+  position INTEGER NOT NULL,
+  name TEXT NOT NULL, description TEXT,
+  exercise_id INTEGER REFERENCES exercises(id),
+  layout TEXT NOT NULL DEFAULT '{"items":[]}',
+  created_by INTEGER NOT NULL REFERENCES users(id),
+  created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS stages_training ON stages(training_id, position);
+CREATE TABLE IF NOT EXISTS reminders_sent (
+  training_id INTEGER NOT NULL REFERENCES trainings(id),
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  kind TEXT NOT NULL CHECK (kind IN ('24h','1h')),
+  sent_at TEXT NOT NULL,
+  PRIMARY KEY (training_id, user_id, kind)
+);
 CREATE TABLE IF NOT EXISTS notifications (
   id INTEGER PRIMARY KEY,
   user_id INTEGER NOT NULL REFERENCES users(id),
