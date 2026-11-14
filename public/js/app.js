@@ -102,7 +102,7 @@ if ('serviceWorker' in navigator) window.addEventListener('load', () => navigato
 
 function footer() {
   return h('footer', { class: 'foot' }, h('div', { class: 'wrap' }, h('strong', null, 'נץ המדבר · Desert Falcon'),
-    h('p', { class: 'small' }, 'התשלום מתבצע במקום בלבד.'), P.linkList('plain'), installEvent ? installBtn() : null));
+    h('p', { class: 'small' }, '© ' + new Date().getFullYear() + ' נץ המדבר · Desert Falcon. כל הזכויות שמורות.'), P.linkList('plain'), installEvent ? installBtn() : null));
 }
 
 async function render() {
