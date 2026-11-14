@@ -314,6 +314,27 @@ const section = s => console.log('\n' + s);
   await admin.post(`/api/admin/trainings/${t10}/status`, { action: 'cancel' });
   r = await coach.post(`/api/instructor/trainings/${t10}/stages`, { name: 'באימון מבוטל', layout }); ok(r.status === 409, 'באימון מבוטל אי אפשר להוסיף תרגילים');
 
+  section('12. מקום האימונים ברירת מחדל וניווט');
+  r = await admin.get('/api/admin/settings');
+  ok(r.data.settings.location_name === 'מטווח נץ המדבר' && r.data.settings.location_map_url.startsWith('https://www.google.com/maps/'), 'ברירת מחדל: מטווח נץ המדבר וקישור המפה');
+  const t11 = await mkTraining('אימון במקום ברירת המחדל', 5, 4);
+  db.prepare('UPDATE trainings SET location=? WHERE id=?').run('מטווח נץ המדבר', t11);
+  await c1.post(`/api/trainings/${t11}/register`);
+  r = await c1.get(`/api/trainings/${t11}`);
+  ok(r.data.training.nav.maps.startsWith('https://www.google.com/maps/place/') && r.data.training.nav.waze.includes('waze.com/ul?q='), 'אימון במטווח המועדון מקבל קישורי ניווט שמורים');
+  r = await admin.put('/api/admin/settings', { location_address: 'רחוב הדוגמה 1, שדרות' });
+  ok(r.status === 200, 'מנהל מעדכן כתובת לניווט');
+  r = await c1.get(`/api/trainings/${t11}`);
+  ok(decodeURIComponent(r.data.training.nav.waze).includes('רחוב הדוגמה 1') && r.data.training.nav.address === 'רחוב הדוגמה 1, שדרות', 'עם כתובת Waze מנווט לפי הכתובת');
+  const ics2 = (await c1.get(`/api/trainings/${t11}/calendar.ics`)).data.toString('utf8').replace(/\r\n /g, '');
+  ok(ics2.includes('LOCATION:מטווח נץ המדבר\\, רחוב הדוגמה 1\\, שדרות'), 'קובץ היומן כולל את הכתובת');
+  db.prepare('UPDATE trainings SET location=? WHERE id=?').run('אולם אחר, תל אביב', t11);
+  r = await c1.get(`/api/trainings/${t11}`);
+  ok(r.data.training.nav.maps.includes('maps/search') && decodeURIComponent(r.data.training.nav.maps).includes('אולם אחר') && r.data.training.nav.address === '', 'מקום אחר מחפש לפי הטקסט שלו');
+  r = await admin.put('/api/admin/settings', { location_map_url: 'javascript:alert(1)' }); ok(r.status === 400, 'קישור מפה לא בטוח נדחה');
+  r = await admin.put('/api/admin/settings', { location_name: 'א' }); ok(r.status === 400, 'שם מקום קצר מדי נדחה');
+  await admin.put('/api/admin/settings', { location_address: 'מתחם MALL 7, דרך מנחם בגין, שדרות' });
+
   console.log(`\n${pass} passed, ${fail} failed`);
   server.close();
   process.exit(fail ? 1 : 0);

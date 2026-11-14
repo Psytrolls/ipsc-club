@@ -116,14 +116,14 @@ export async function trainings() {
 
 export async function trainingEdit({ params }) {
   const isNew = params.id === 'new';
-  const [{ items: instr }, existing] = await Promise.all([api('GET', '/api/admin/instructors'), isNew ? null : api('GET', '/api/admin/trainings')]);
+  const [{ items: instr }, existing, cfg] = await Promise.all([api('GET', '/api/admin/instructors'), isNew ? null : api('GET', '/api/admin/trainings'), isNew ? api('GET', '/api/admin/settings') : null]);
   const t = isNew ? null : existing.items.find(x => String(x.id) === params.id);
   if (!isNew && !t) return h('div', { class: 'wrap' }, h('p', { class: 'alert err' }, 'האימון לא נמצא'));
   const locked = t && ['cancelled', 'done'].includes(t.status);
   const alert = formAlert();
   const title = h('input', { type: 'text', value: t?.title || '', maxlength: 100, required: true, disabled: locked });
   const when = h('input', { type: 'datetime-local', value: t?.starts_local || '', required: true, disabled: locked });
-  const place = h('input', { type: 'text', value: t?.location || '', maxlength: 150, required: true, disabled: locked });
+  const place = h('input', { type: 'text', value: t?.location || (cfg ? cfg.settings.location_name : ''), maxlength: 150, required: true, disabled: locked });
   const cap = h('input', { type: 'number', min: 1, max: 500, value: t?.capacity || 12, required: true, inputmode: 'numeric', disabled: locked });
   const ins = h('select', { required: true, disabled: locked }, h('option', { value: '' }, 'בחירת מדריך'), instr.map(i => h('option', { value: i.id, selected: t && t.instructor_id === i.id }, i.name)));
   const notes = h('textarea', { maxlength: 1000, disabled: locked }, t?.notes || '');
@@ -245,6 +245,10 @@ export async function settings() {
     } }, alert,
     mk('cancel_deadline_hours', 'ביטול הרשמה עד כמה שעות לפני האימון', { type: 'number', min: 0, max: 168 }),
     mk('offer_hours', 'שעות לאישור מקום מרשימת המתנה', { type: 'number', min: 1, max: 72 }),
+    h('h3', null, 'מקום האימונים'),
+    mk('location_name', 'שם המקום (נכנס אוטומטית באימון חדש)', { type: 'text', dir: 'rtl', maxlength: 100 }),
+    mk('location_address', 'כתובת לניווט (לא חובה)', { type: 'text', dir: 'rtl', maxlength: 150 }, 'אם תמלאו, Waze והיומן ינווטו לפי הכתובת. אחרת לפי שם המקום.'),
+    mk('location_map_url', 'קישור Google Maps למקום'),
     h('h3', null, 'קישורים'),
     mk('link_ipsc_global', 'IPSC העולמי'), mk('link_ipsc_israel', 'IPSC ישראל'), mk('link_facebook', 'פייסבוק'), mk('link_instagram', 'אינסטגרם'), mk('link_youtube', 'יוטיוב'), mk('link_whatsapp', 'וואטסאפ'),
     save),

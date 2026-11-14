@@ -234,6 +234,18 @@ app.post('/api/notifications/read', needLogin, (req, res) => {
 });
 
 // ---------- member: trainings ----------
+// Navigation links for a training: the club range uses the saved map link / address, any other place is searched by its text.
+function navFor(t) {
+  const enc = encodeURIComponent;
+  const name = getSetting('location_name'), address = getSetting('location_address'), mapUrl = getSetting('location_map_url');
+  const isClub = name && t.location.trim() === name.trim();
+  const q = isClub ? (address || name) : t.location;
+  return {
+    maps: isClub && mapUrl ? mapUrl : `https://www.google.com/maps/search/?api=1&query=${enc(q)}`,
+    waze: `https://waze.com/ul?q=${enc(q)}&navigate=yes`,
+    address: isClub ? address : ''
+  };
+}
 function trainingView(t, userId) {
   const c = T.counts(t.id);
   const instr = db.prepare('SELECT name FROM users WHERE id=?').get(t.instructor_id);
@@ -246,7 +258,7 @@ function trainingView(t, userId) {
   }
   const hours = Number(getSetting('cancel_deadline_hours')) || 0;
   return {
-    id: t.id, title: t.title, starts_at: t.starts_at, location: t.location, status: t.status, notes: t.notes,
+    id: t.id, title: t.title, starts_at: t.starts_at, location: t.location, nav: navFor(t), status: t.status, notes: t.notes,
     capacity: t.capacity, instructor: instr ? instr.name : null,
     seats_taken: c.confirmed, seats_held: c.offered, seats_free: Math.max(0, t.capacity - c.confirmed - c.offered),
     waitlist_count: c.waitlist,
@@ -488,12 +500,13 @@ app.get('/api/trainings/:id/calendar.ics', needLogin, wrap((req, res) => {
     || t.instructor_id === req.user.id || L.hasRole(req.user, 'admin'));
   if (!t || !mine) throw new HttpError(404, 'האימון לא נמצא');
   if (t.status === 'cancelled') throw new HttpError(409, 'האימון בוטל');
+  const nav = navFor(t);
   const start = new Date(t.starts_at), end = new Date(start.getTime() + 2 * 3600e3); // trainings have no end time; 2h is a placeholder
   const alarm = (trigger, text) => ['BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:' + icsEsc(text), 'TRIGGER:' + trigger, 'END:VALARM'];
   const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Desert Falcon//IPSC Club//HE', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH',
     'BEGIN:VEVENT', `UID:training-${t.id}@desert-falcon`, 'DTSTAMP:' + icsTime(new Date()), `SEQUENCE:${Math.floor(new Date(t.updated_at).getTime() / 60000)}`,
-    'DTSTART:' + icsTime(start), 'DTEND:' + icsTime(end), 'SUMMARY:' + icsEsc(t.title), 'LOCATION:' + icsEsc(t.location),
-    'DESCRIPTION:' + icsEsc('נץ המדבר. ' + (t.notes || '') + ' משך האימון בקירוב: שעתיים.'),
+    'DTSTART:' + icsTime(start), 'DTEND:' + icsTime(end), 'SUMMARY:' + icsEsc(t.title), 'LOCATION:' + icsEsc(t.location + (nav.address ? ', ' + nav.address : '')),
+    'DESCRIPTION:' + icsEsc('נץ המדבר. ' + (t.notes || '') + ' משך האימון בקירוב: שעתיים. ניווט: ' + nav.maps),
     ...alarm('-P1D', 'מחר: ' + t.title), ...alarm('-PT1H', 'בעוד שעה: ' + t.title), 'END:VEVENT', 'END:VCALENDAR'];
   res.set({ 'Content-Type': 'text/calendar; charset=utf-8', 'Content-Disposition': `attachment; filename="training-${t.id}.ics"`, 'Cache-Control': 'private, no-store' });
   res.send(lines.map(icsFold).join('\r\n') + '\r\n');
@@ -949,6 +962,8 @@ app.put('/api/admin/settings', admin, wrap((req, res) => {
     if (b[k] === undefined) continue;
     if (k === 'cancel_deadline_hours') out[k] = String(intIn(b[k], 0, 168, 'מועד אחרון לביטול'));
     else if (k === 'offer_hours') out[k] = String(intIn(b[k], 1, 72, 'זמן לאישור מקום'));
+    else if (k === 'location_name') out[k] = str(b[k], 2, 100, 'שם המקום');
+    else if (k === 'location_address') out[k] = optStr(b[k], 150, 'כתובת') || '';
     else out[k] = L.safeUrl(b[k], k);
   }
   db.transaction(() => { for (const [k, v] of Object.entries(out)) setSetting(k, v); audit(req.user.id, 'settings_update', null, out); })();

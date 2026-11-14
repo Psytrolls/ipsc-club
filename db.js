@@ -145,6 +145,9 @@ if (!cols('news').includes('category')) db.exec(`ALTER TABLE news ADD COLUMN cat
 const SETTING_DEFAULTS = {
   cancel_deadline_hours: '3',   // member may cancel until N hours before start (pending club decision)
   offer_hours: '12',            // time a member has to confirm a waitlist offer (pending club decision)
+  location_name: 'מטווח נץ המדבר',   // default place for new trainings
+  location_address: 'מתחם MALL 7, דרך מנחם בגין, שדרות',              // street address for Waze / the calendar file (optional)
+  location_map_url: 'https://www.google.com/maps/place/%D7%9E%D7%98%D7%95%D7%95%D7%97+%D7%A0%D7%A5+%D7%94%D7%9E%D7%93%D7%91%D7%A8+DESERTFALCON/data=!4m2!3m1!1s0x0:0x694f23e69df971c0',
   link_ipsc_global: 'https://www.ipsc.org',
   link_ipsc_israel: '',
   link_facebook: '', link_instagram: '', link_youtube: '', link_whatsapp: '',

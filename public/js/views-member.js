@@ -84,16 +84,18 @@ export async function trainingDetail({ params }) {
       h('p', { class: 'gap' }, h('a', { href: '#/m/trainings' }, '→ חזרה לאימונים')),
       h('div', { class: 'page-head' }, h('h1', null, t.title), statusChip(t) || h('span', { class: 'chip' }, TRAINING_STATUS[t.status])),
       h('div', { class: 'card' }, h('dl', { class: 'grid two' },
-        dt('מועד', fmtDateTime(t.starts_at)), dt('מקום', t.location), dt('מדריך', t.instructor || '—'),
+        dt('מועד', fmtDateTime(t.starts_at)), dt('מקום', t.location + (t.nav && t.nav.address ? ', ' + t.nav.address : '')), dt('מדריך', t.instructor || '—'),
         dt('מקומות', `${t.seats_taken} תפוסים מתוך ${t.capacity}` + (t.seats_held ? ` · ${t.seats_held} שמורים להצעה` : '')),
         t.notes ? dt('הערות', t.notes) : null), seatsBar(t)),
-      h('div', { class: 'gap' }), trainingActions(t, draw),
+      navLinks(t), h('div', { class: 'gap' }), trainingActions(t, draw),
       t.mine && ['confirmed', 'offered'].includes(t.mine.status) && t.status !== 'cancelled' ? h('div', { class: 'gap' }, calLink(t)) : null,
       plan);
   };
   draw((await api('GET', '/api/trainings/' + params.id)).training);
   return wrap;
 }
+const ext = u => ({ href: u, target: '_blank', rel: 'noopener noreferrer' });
+const navLinks = t => t.nav ? h('div', { class: 'row gap' }, h('a', { class: 'btn soft sm', ...ext(t.nav.waze) }, icon('pin'), 'ניווט ב-Waze'), h('a', { class: 'btn soft sm', ...ext(t.nav.maps) }, icon('pin'), 'פתיחה ב-Google Maps')) : null;
 const calLink = t => h('a', { class: 'btn soft sm', href: `/api/trainings/${t.id}/calendar.ics`, download: '' }, icon('calendar'), 'הוספה ליומן');
 const dt = (k, v) => h('div', null, h('dt', { class: 'small muted' }, k), h('dd', { class: 'dd' }, v));
 
