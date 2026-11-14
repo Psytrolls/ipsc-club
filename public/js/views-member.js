@@ -1,6 +1,7 @@
 import { h, s, api, field, formAlert, busy, toast, fmtDateTime, fmtDay, fmtFull, TRAINING_STATUS, MY_STATUS, TARGET, avatar, uploadPhoto } from './util.js';
 import { icon } from './icons.js';
 import { state, go, homeFor } from './state.js';
+import { targetBox, hitsFor, countdown } from './live.js';
 
 const statusChip = t => {
   if (t.mine) {
@@ -122,7 +123,7 @@ export function lineChart(points, metric) {
   });
   svg.append(s('text', { x: P.l, y: 12, 'text-anchor': 'start' }, METRICS[metric]));
   if (points.length > 1) svg.append(s('polygon', { class: 'area', points: `${xr(xs[0])},${Y(Math.max(y0, 0))} ` + points.map((p, i) => `${xr(xs[i])},${Y(vals[i])}`).join(' ') + ` ${xr(xs[xs.length - 1])},${Y(Math.max(y0, 0))}` }));
-  if (points.length > 1) svg.append(s('polyline', { class: 'line', points: points.map((p, i) => `${xr(xs[i])},${Y(vals[i])}`).join(' ') }));
+  if (points.length > 1) svg.append(s('polyline', { class: 'line', pathLength: 1, points: points.map((p, i) => `${xr(xs[i])},${Y(vals[i])}`).join(' ') }));
   points.forEach((p, i) => svg.append(s('circle', { class: 'dot', cx: xr(xs[i]), cy: Y(vals[i]), r: 6 }, s('title', null, `${fmtDay(p.starts_at)}: ${vals[i]}`))));
   return svg;
 }
@@ -172,7 +173,7 @@ export async function results() {
 export async function dashboard() {
   const u = state.user;
   const [stats, regs, hist, block] = await Promise.all([api('GET', '/api/me/stats'), api('GET', '/api/me/registrations'), api('GET', '/api/me/results'), progressBlock({ withDetails: false })]);
-  const next = regs.items.find(t => t.mine && ['confirmed', 'offered'].includes(t.mine.status) && t.status !== 'cancelled');
+  const next = regs.items.find(t => t.mine && ['confirmed', 'offered'].includes(t.mine.status) && t.status !== 'cancelled' && new Date(t.starts_at).getTime() > Date.now() - 3 * 3600e3);
   const lastFb = hist.items.find(g => g.feedback);
   const latest = hist.items.flatMap(g => g.results.map(r => ({ ...r, date: g.starts_at, title: g.title }))).slice(0, 3);
   const tile = (ic, n, label) => h('div', { class: 'tile' }, icon(ic), h('b', null, n), h('span', null, label));
@@ -184,10 +185,11 @@ export async function dashboard() {
         h('div', { class: 'muted small gap' }, u.shooter_no ? 'מספר יורה: ' + u.shooter_no : 'מספר יורה: —', u.classification ? ' · ' + u.classification : '')),
     ), h('a', { class: 'btn ghost sm gap', href: '#/profile' }, icon('pencil'), 'עריכת פרופיל')),
     h('section', { class: 'grid tiles gap' }, tile('calendar', stats.attended, 'אימונים שהשתתפתי'), tile('target', stats.alpha_pct == null ? '—' : stats.alpha_pct + '%', 'דיוק אלפא'), tile('chart', stats.results, 'תוצאות שפורסמו')),
+    latest[0] ? liveTarget(latest[0]) : null,
     h('section', { class: 'card gap' }, h('h2', { class: 'section-title' }, icon('trend'), 'ההתקדמות שלי'), block),
     h('div', { class: 'grid two gap' },
       h('section', { class: 'card' }, h('h3', { class: 'section-title' }, icon('calendar'), 'האימון הבא'),
-        next ? h('div', { class: 'next-card' }, h('div', { class: 'when' }, fmtDateTime(next.starts_at)), h('div', null, next.title),
+        next ? h('div', { class: 'next-card' }, countdown(next.starts_at), h('div', { class: 'when' }, fmtDateTime(next.starts_at)), h('div', null, next.title),
           h('div', { class: 'meta muted' }, icon('pin'), next.location), statusLine(next), h('a', { class: 'btn block', href: '#/m/training/' + next.id }, 'פרטי האימון', icon('left')))
           : h('div', { class: 'next-card' }, h('p', { class: 'muted' }, 'אין לך אימון קרוב.'), h('a', { class: 'btn block', href: '#/m/trainings' }, 'הרשמה לאימון', icon('left')))),
       h('section', { class: 'card' }, h('h3', { class: 'section-title' }, icon('chat'), 'דגשים מהמדריך'),
@@ -195,6 +197,15 @@ export async function dashboard() {
     h('section', { class: 'card gap' }, h('h3', { class: 'section-title' }, icon('doc'), 'תוצאות אחרונות'),
       latest.length ? h('div', { class: 'list' }, latest.map(r => h('a', { class: 'result-row', href: '#/m/results', style: null }, icon('chart'), h('span', { class: 'grow' }, `${r.name} · ${r.time_sec} ש׳`), h('span', { class: 'muted small' }, fmtDay(r.date)), icon('left'))))
         : h('p', { class: 'muted' }, 'עדיין אין תוצאות.')));
+}
+function liveTarget(r) {
+  const chip = (z, n) => h('div', { class: 'sim-stat z' + z }, h('b', null, n), h('span', null, z));
+  return h('section', { class: 'card gap live-target' }, h('h2', { class: 'section-title' }, icon('target'), 'התוצאה האחרונה שלי'),
+    h('div', { class: 'lt-grid' }, targetBox(hitsFor(r), { animate: true, label: `מטרה עם ${r.a} פגיעות A, ${r.c} פגיעות C, ${r.d} פגיעות D` }),
+      h('div', { class: 'lt-info' }, h('p', { class: 'muted small' }, `${r.name} · ${fmtDay(r.date)}`),
+        h('div', null, h('span', { class: 'sim-label' }, 'זמן (שניות)'), h('div', { class: 'sim-time', dir: 'ltr' }, String(r.time_sec))),
+        h('div', { class: 'sim-stats' }, chip('A', r.a), chip('C', r.c), chip('D', r.d)),
+        h('p', { class: 'small muted' }, `החטאות: ${r.misses}`))));
 }
 const statusLine = t => t.mine.status === 'offered' ? h('div', { class: 'chip warn' }, 'יש לאשר את המקום שהוצע לך') : h('div', { class: 'chip ok' }, icon('check'), 'נרשמת');
 

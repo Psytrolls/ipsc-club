@@ -1,6 +1,7 @@
 import { h, api, field, formAlert, busy, toast, normalizePhone, fmtDay, dialog } from './util.js';
 import { icon } from './icons.js';
 import { state, go, homeFor } from './state.js';
+import { simulator } from './sim.js';
 
 const LINKS = { whatsapp: ['וואטסאפ', 'whatsapp'], instagram: ['אינסטגרם', 'instagram'], facebook: ['פייסבוק', 'facebook'], youtube: ['יוטיוב', 'youtube'], ipsc_global: ['IPSC העולמי', 'globe'], ipsc_israel: ['IPSC ישראל', 'globe'] };
 const ext = u => ({ href: u, target: '_blank', rel: 'noopener noreferrer' });
@@ -21,22 +22,26 @@ const CATS = { club: 'מועדון', israel: 'ישראל', world: 'עולם' };
 
 export function home() {
   const news = state.info.news;
-  const card = (cls, title, text, href) => h('a', { class: 'media-card', href: '#' + href }, h('div', { class: 'img ' + cls, role: 'img', 'aria-label': '' }),
-    h('div', { class: 'body' }, h('h3', null, title), h('p', { class: 'muted' }, text), h('span', { class: 'more' }, 'קראו עוד', icon('left'))));
+  const ticker = txt => h('span', null, txt);
+  const strip = 'ספורט • קהילה • התקדמות • ספורט • קהילה • התקדמות • ';
+  const gcard = (cls, href, title) => h('a', { class: 'gcard ' + cls, href: '#' + href }, h('span', null, title));
   return h('div', null,
-    h('section', { class: 'hero' }, h('div', { class: 'wrap' },
-      h('h1', null, 'מועדון ירי מעשי'),
-      h('p', { class: 'sub' }, 'ספורט • קהילה • התקדמות'),
-      h('div', { class: 'row cta' },
-        h('a', { class: 'btn', href: '#/course' }, icon('target'), 'בקשה לקורס'),
-        h('a', { class: 'btn ghost', href: '#/join' }, icon('user'), 'הצטרפות למועדון')))),
+    h('section', { class: 'hero hero-dyn' }, h('div', { class: 'hero-bg kb', 'aria-hidden': 'true' }),
+      h('div', { class: 'wrap' },
+        h('h1', null, h('span', { class: 'sr' }, 'נץ המדבר: '), h('span', { class: 'w w1' }, 'מהירות.'), ' ', h('span', { class: 'w w2' }, 'דיוק.'), ' ', h('span', { class: 'w w3' }, 'אתם.')),
+        h('p', { class: 'lead r3' }, 'מועדון ירי מעשי נץ המדבר. קורס למתחילים, אימונים ותוצאות שרואים איך אתם משתפרים.'),
+        h('div', { class: 'row cta r3' },
+          h('a', { class: 'btn', href: '#/course' }, icon('target'), 'בקשה לקורס'),
+          h('a', { class: 'btn ghost', href: '#/join' }, icon('user'), 'הצטרפות למועדון')))),
+    h('div', { class: 'ticker', 'aria-hidden': 'true' }, h('div', { class: 'ticker-track marq', dir: 'ltr' }, ticker(strip), ticker(strip))),
+    simulator(),
+    h('section', { class: 'gallery-sec' }, h('div', { class: 'wrap' }, h('h2', null, 'מהשטח')),
+      h('div', { class: 'gallery', tabindex: '0', 'aria-label': 'גלריה, אפשר לגלול הצידה' },
+        gcard('g-events', '/news', 'חדשות המועדון'), gcard('g-officers', '/ipsc', 'מה זה IPSC?'), gcard('g-hero', '/course', 'קורס למתחילים'))),
     h('div', { class: 'wrap' },
       h('section', { class: 'section' }, h('h2', null, 'על המועדון'),
         h('p', { class: 'prose' }, 'דזרט פלקון הוא מועדון ירי מעשי הפועל בישראל, המוקדש לספורט, לאנשים ולקהילה. אנו מקדמים מצוינות אישית, בטיחות ותרבות ירי אחראית בסביבה מקצועית ותומכת.'),
         h('a', { class: 'btn ghost sm', href: '#/about' }, 'קראו עוד', icon('left'))),
-      h('section', { class: 'section grid two' },
-        card('i-events', 'חדשות המועדון', 'סיפורים מהשטח, הישגים, יוזמות קהילתיות וכל מה שקורה במועדון.', '/news'),
-        card('i-officers', 'מהעולם', 'עדכונים, כתבות ופרשנויות מעולם הירי המעשי בארץ ובעולם.', '/ipsc')),
       news.length ? h('section', { class: 'section' }, h('h2', null, 'חדשות אחרונות'),
         h('div', { class: 'grid two' }, news.slice(0, 2).map(newsCard))) : null,
       h('section', { class: 'section' }, h('h2', { class: 'section-title' }, icon('info'), 'שאלות נפוצות'),
