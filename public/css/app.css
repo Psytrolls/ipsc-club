@@ -490,3 +490,10 @@ dialog { border-radius: 8px; } dialog::backdrop { background: rgba(21,19,15,.62)
 .stage-head h3 { margin: 0; flex: 1 1 auto; }
 .stage-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .pre { white-space: pre-line; margin: 0; }
+
+/* live training mode */
+.live-cta { width: 100%; justify-content: center; min-height: 56px; margin: 12px 0; font-size: 1.1rem; }
+.seg.wide { display: flex; width: 100%; } .seg.wide button { flex: 1; min-height: 54px; }
+.seg.wide button[aria-pressed="true"] { background: var(--ink); color: #fff; }
+.seg.big button { min-height: 56px; padding: 12px 20px; }
+.live .rec { margin-top: 12px; }

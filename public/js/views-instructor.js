@@ -43,6 +43,7 @@ export async function trainingParticipants({ params }) {
     wrap.replaceChildren(h('p', { class: 'gap' }, h('a', { href: '#/i' }, '→ האימונים שלי')),
       h('div', { class: 'page-head' }, h('h1', null, t.title), h('div', { class: 'meta muted' }, fmtDateTime(t.starts_at) + ' · ' + t.location + ' · ' + TRAINING_STATUS[t.status])),
       t.status === 'cancelled' ? h('div', { class: 'alert err' }, 'האימון בוטל.') : null,
+      canMark ? h('a', { class: 'btn live-cta', href: `#/i/training/${t.id}/live` }, icon('target'), 'מצב אימון חי: נוכחות וירי') : null,
       h('div', { class: 'row' }, h('h2', { class: 'grow' }, `משתתפים (${participants.length})`), (() => {
         const drafts = participants.filter(p => p.results_count && !p.published).length;
         if (!drafts) return null;
@@ -251,5 +252,150 @@ export async function memberSheet({ params }) {
     alert, list, h('div', { class: 'gap' }, add), h('div', { class: 'gap' }, field('משוב אישי', fb)),
     h('div', { class: 'row gap' }, nextBtn, draft, pub), h('p', { class: 'gap' }, autoState));
   root.addEventListener('input', schedule); root.addEventListener('change', schedule); root.addEventListener('click', e => { if (e.target.closest('.stepper button')) schedule(); });
+  return root;
+}
+
+// ---------- live training: roll call, then pick who shoots and record results on the spot ----------
+export async function liveTraining({ params }) {
+  const id = params.id;
+  const getLive = () => api('GET', `/api/instructor/trainings/${id}/live`);
+  const [first, ex, plan] = await Promise.all([getLive(), api('GET', '/api/exercises'), api('GET', `/api/instructor/trainings/${id}/stages`)]);
+  let data = first;
+  let tab = data.participants.some(p => !p.attendance) ? 'roll' : 'shoot';
+  const setupKey = 'df-live-' + id;
+  let setup = { sel: '', manual: '', target: 'paper' };
+  try { setup = { ...setup, ...JSON.parse(sessionStorage.getItem(setupKey) || '{}') }; } catch { /* ignore */ }
+  const saveSetup = () => { try { sessionStorage.setItem(setupKey, JSON.stringify(setup)); } catch { /* private mode */ } };
+  let open = null; // { uid, recId, f: {time,a,c,d,misses} }
+  const canMark = !['cancelled', 'draft'].includes(data.training.status);
+  const root = h('div', { class: 'wrap live' });
+
+  const current = () => {
+    if (setup.sel.startsWith('stage:')) {
+      const p = plan.items.find(x => 'stage:' + x.id === setup.sel);
+      return p ? { exercise_id: p.exercise_id || null, manual_name: p.exercise_id ? null : p.name } : { exercise_id: null, manual_name: '' };
+    }
+    if (setup.sel) return { exercise_id: Number(setup.sel), manual_name: null };
+    return { exercise_id: null, manual_name: setup.manual.trim() };
+  };
+  const exName = () => { const c = current(); return c.exercise_id ? (ex.items.find(e => e.id === c.exercise_id) || {}).name : c.manual_name; };
+  const matches = rec => { const c = current(); return c.exercise_id ? rec.exercise_id === c.exercise_id : (!rec.exercise_id && rec.name === c.manual_name && !!c.manual_name); };
+  const mark = async (p, status) => {
+    try { await api('POST', `/api/instructor/trainings/${id}/attendance`, { user_id: p.id, status }); p.attendance = status; draw(); }
+    catch (e) { toast(e.message, true); }
+  };
+
+  const rollTab = () => {
+    const ps = data.participants;
+    const here = ps.filter(p => p.attendance === 'present').length, pending = ps.filter(p => !p.attendance);
+    const all = h('button', { class: 'btn', type: 'button', disabled: !canMark || !pending.length }, `סימון כל הממתינים כהגיעו (${pending.length})`);
+    all.onclick = () => busy(all, async () => {
+      try { await Promise.all(pending.map(p => api('POST', `/api/instructor/trainings/${id}/attendance`, { user_id: p.id, status: 'present' }))); pending.forEach(p => { p.attendance = 'present'; }); draw(); }
+      catch (e) { toast(e.message, true); }
+    });
+    const go2 = h('button', { class: 'btn', type: 'button', onclick: () => { tab = 'shoot'; draw(); } }, 'לתחילת הירי');
+    return [h('div', { class: 'alert info', role: 'status' }, `הגיעו ${here} מתוך ${ps.length}`),
+      h('div', { class: 'row gap' }, all, go2),
+      ps.length ? h('ul', { class: 'list gap' }, ps.map(p => {
+        const seg = h('div', { class: 'seg big', role: 'group', 'aria-label': 'נוכחות של ' + p.name },
+          ...[['present', 'הגיע', 'yes'], ['absent', 'לא הגיע', 'no']].map(([val, label, cls]) => {
+            const b = h('button', { type: 'button', class: cls, 'aria-pressed': String(p.attendance === val), disabled: !canMark }, label);
+            b.onclick = () => mark(p, p.attendance === val ? null : val);
+            return b;
+          }));
+        return h('li', { class: 'item' }, h('div', { class: 'row' }, avatar({ id: p.id, name: p.name, has_photo: !!p.has_photo }), h('strong', { class: 'grow' }, p.name), seg));
+      })) : h('p', { class: 'muted' }, 'אין עדיין נרשמים מאושרים.')];
+  };
+
+  const stepper = (f, key, label) => {
+    const i = h('input', { type: 'text', inputmode: 'numeric', value: f[key], dir: 'ltr', autocomplete: 'off', 'aria-label': label });
+    i.oninput = () => { f[key] = i.value; };
+    const step = d => { const n = Math.max(0, (parseInt(i.value, 10) || 0) + d); i.value = n; f[key] = n; };
+    return h('div', { class: 'stepper', role: 'group', 'aria-label': label }, h('span', null, label),
+      h('div', { class: 'ctl2' }, h('button', { type: 'button', 'aria-label': label + ' פלוס', onclick: () => step(1) }, '+'), i, h('button', { type: 'button', 'aria-label': label + ' מינוס', onclick: () => step(-1) }, '−')));
+  };
+  const summary = r => `${Number(r.time_sec).toFixed(2)} שנ׳ · A${r.a} C${r.c} D${r.d}` + (r.misses ? ` · החטאות ${r.misses}` : '');
+
+  const form = p => {
+    const f = open.f, err = formAlert();
+    const t = h('input', { type: 'text', inputmode: 'decimal', value: f.time, dir: 'ltr', autocomplete: 'off', placeholder: '0.00', 'aria-label': 'זמן בשניות' });
+    t.oninput = () => { f.time = t.value; };
+    const save = h('button', { class: 'btn', type: 'submit' }, 'שמירה');
+    const el = h('form', { class: 'rec', novalidate: true },
+      h('div', { class: 'timebox' }, icon('timer'), h('strong', null, 'זמן בשניות'), h('div', { class: 'grow' }, t)),
+      h('div', { class: 'steppers' }, stepper(f, 'a', 'Alpha (A)'), stepper(f, 'c', 'Charlie (C)'), stepper(f, 'd', 'Delta (D)'), stepper(f, 'misses', 'החטאות (Miss)')),
+      err, h('div', { class: 'row' }, save, h('button', { class: 'btn ghost', type: 'button', onclick: () => { open = null; draw(); } }, 'ביטול')));
+    el.onsubmit = e => {
+      e.preventDefault();
+      const c = current(), time = Number(String(f.time).replace(',', '.'));
+      const n = ['a', 'c', 'd', 'misses'].map(k => f[k] === '' ? 0 : Number(f[k]));
+      if (!c.exercise_id && (c.manual_name || '').length < 2) return err.show('יש לבחור תרגיל או לכתוב שם תרגיל');
+      if (!Number.isFinite(time) || time <= 0) return err.show('יש להזין זמן תקין (מספר חיובי)');
+      if (n.some(v => !Number.isInteger(v) || v < 0)) return err.show('הספירות וההחטאות חייבות להיות מספרים שלמים, 0 ומעלה');
+      busy(save, async () => {
+        try {
+          const r = await api('POST', `/api/instructor/trainings/${id}/members/${p.id}/record`, { id: open.recId, exercise_id: c.exercise_id, manual_name: c.manual_name, target_type: setup.target, a: n[0], c: n[1], d: n[2], misses: n[3], time_sec: time });
+          p.records = r.records; open = null; draw(); toast('נשמר כטיוטה');
+        } catch (x) { err.show(x.message); }
+      });
+    };
+    setTimeout(() => { if (t.isConnected) t.focus(); }, 50);
+    return el;
+  };
+
+  const shootTab = () => {
+    const sel = h('select', { 'aria-label': 'תרגיל' }, h('option', { value: '' }, 'תרגיל ידני (לא מהמאגר)'),
+      plan.items.length ? h('optgroup', { label: 'מתכנית האימון' }, plan.items.map(p => h('option', { value: 'stage:' + p.id, selected: setup.sel === 'stage:' + p.id }, p.name))) : null,
+      h('optgroup', { label: 'מאגר התרגילים' }, ex.items.filter(e => e.active).map(e => h('option', { value: e.id, selected: setup.sel === String(e.id) }, e.name))));
+    const manual = h('input', { type: 'text', value: setup.manual, maxlength: 80, placeholder: 'שם התרגיל' });
+    const fManual = field('שם תרגיל ידני', manual); fManual.hidden = !!setup.sel;
+    manual.oninput = () => { setup.manual = manual.value; saveSetup(); };
+    sel.onchange = () => { setup.sel = sel.value; saveSetup(); open = null; draw(); };
+    const tgt = h('select', { 'aria-label': 'סוג מטרה' }, Object.entries(TARGET).map(([k, v]) => h('option', { value: k, selected: k === setup.target }, v)));
+    tgt.onchange = () => { setup.target = tgt.value; saveSetup(); };
+    const present = data.participants.filter(p => p.attendance === 'present');
+    const done = p => p.records.some(matches);
+    const sorted = [...present].sort((a, b) => Number(done(a)) - Number(done(b)));
+    const card = p => {
+      const mine = p.records.filter(matches), last = mine[mine.length - 1];
+      const isOpen = open && open.uid === p.id;
+      const act = (label, fn, cls = 'btn soft sm') => h('button', { type: 'button', class: cls, onclick: fn }, label);
+      const start = (recId, rec) => { if (!exName()) { toast('יש לבחור תרגיל לפני הזנת תוצאה', true); return; } open = { uid: p.id, recId, f: rec ? { time: rec.time_sec, a: rec.a, c: rec.c, d: rec.d, misses: rec.misses } : { time: '', a: 0, c: 0, d: 0, misses: 0 } }; draw(); };
+      return h('li', { class: 'item' },
+        h('div', { class: 'row' }, avatar({ id: p.id, name: p.name, has_photo: !!p.has_photo }),
+          h('div', { class: 'grow' }, h('strong', null, p.name), h('div', { class: 'small muted' }, mine.length ? mine.map(summary).join(' | ') : 'ממתין לירי')),
+          h('span', { class: 'chip' + (mine.length ? ' ok' : '') }, mine.length ? `ירה${mine.length > 1 ? ' ×' + mine.length : ''}` : 'ממתין')),
+        isOpen ? form(p) : h('div', { class: 'row gap' },
+          act(mine.length ? 'ריצה נוספת' : 'הזנת תוצאה', () => start(null, null), mine.length ? 'btn soft sm' : 'btn sm'),
+          last ? act('תיקון אחרון', () => start(last.id, last), 'btn ghost sm') : null,
+          h('a', { class: 'btn ghost sm', href: `#/i/training/${id}/member/${p.id}` }, 'משוב')));
+    };
+    const drafts = data.participants.filter(p => p.records.some(r => !r.published)).length;
+    const pubAll = h('button', { class: 'btn', type: 'button', disabled: !drafts }, `פרסום כל הטיוטות (${drafts})`);
+    pubAll.onclick = async () => {
+      if (!await confirmDialog('פרסום כל הטיוטות', `התוצאות של ${drafts} משתתפים יפורסמו להם, והם יקבלו הודעה. להמשיך?`, { ok: 'פרסום' })) return;
+      busy(pubAll, async () => { try { const r = await api('POST', `/api/instructor/trainings/${id}/publish-drafts`, {}); toast(`פורסמו ${r.published} גיליונות`); data = await getLive(); draw(); } catch (e) { toast(e.message, true); } });
+    };
+    return [h('div', { class: 'item' }, h('h3', null, 'איזה תרגיל יורים עכשיו?'), field('תרגיל', sel), fManual, field('סוג מטרה', tgt)),
+      present.length ? h('p', { class: 'small muted gap' }, `ירו ${present.filter(done).length} מתוך ${present.length} בתרגיל "${exName() || '—'}"`) : null,
+      present.length ? h('ul', { class: 'list' }, sorted.map(card)) : h('p', { class: 'muted gap' }, 'עדיין לא סומנו משתתפים כמי שהגיעו. עברו ללשונית הנוכחות.'),
+      h('div', { class: 'gap2' }, pubAll)];
+  };
+
+  const draw = () => {
+    const tabBtn = (key, label) => h('button', { type: 'button', 'aria-pressed': String(tab === key), onclick: () => { tab = key; open = null; draw(); } }, label);
+    root.replaceChildren(h('p', { class: 'gap' }, h('a', { href: '#/i/training/' + id }, '→ חזרה לאימון')),
+      h('div', { class: 'page-head' }, h('h1', null, data.training.title), h('div', { class: 'meta muted' }, fmtDateTime(data.training.starts_at) + ' · ' + data.training.location)),
+      data.training.status === 'cancelled' ? h('div', { class: 'alert err' }, 'האימון בוטל.') : null,
+      h('div', { class: 'seg wide gap', role: 'group', 'aria-label': 'שלב באימון' }, tabBtn('roll', 'נוכחות'), tabBtn('shoot', 'ירי ותוצאות')),
+      ...(tab === 'roll' ? rollTab() : shootTab()));
+  };
+  draw();
+  // refresh in the background so a second device (or a late registration change) shows up; never while a form is open
+  const watch = setInterval(async () => {
+    if (!root.isConnected) { clearInterval(watch); return; }
+    if (open || document.hidden) return;
+    try { data = await getLive(); draw(); } catch { /* offline: keep what is on screen */ }
+  }, 30000);
   return root;
 }

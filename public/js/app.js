@@ -13,7 +13,7 @@ const ROUTES = [
   ['/password', '*', M.password, 'החלפת סיסמה'], ['/notifications', '*', M.notifications, 'הודעות'], ['/profile', '*', M.profile, 'הפרופיל שלי'],
   ['/m', ['member'], M.dashboard, 'האזור האישי'], ['/m/trainings', ['member'], M.trainings, 'אימונים'], ['/m/training/:id', ['member'], M.trainingDetail, 'פרטי אימון'],
   ['/m/mine', ['member'], M.mine, 'ההרשמות שלי'], ['/m/results', ['member'], M.results, 'התקדמות'],
-  ['/i', ['instructor'], I.myTrainings, 'אזור המדריך'], ['/i/training/:id', ['instructor'], I.trainingParticipants, 'משתתפים'], ['/i/training/:id/member/:uid', ['instructor'], I.memberSheet, 'הזנת תוצאות'], ['/i/training/:id/stage/:sid', ['instructor'], I.stageEdit, 'תרגיל'],
+  ['/i', ['instructor'], I.myTrainings, 'אזור המדריך'], ['/i/training/:id', ['instructor'], I.trainingParticipants, 'משתתפים'], ['/i/training/:id/live', ['instructor'], I.liveTraining, 'אימון חי'], ['/i/training/:id/member/:uid', ['instructor'], I.memberSheet, 'הזנת תוצאות'], ['/i/training/:id/stage/:sid', ['instructor'], I.stageEdit, 'תרגיל'],
   ['/a', ['admin'], A.dashboard, 'ניהול המועדון'], ['/a/more', ['admin'], A.more, 'עוד'],
   ['/a/inquiries', ['admin'], A.inquiries, 'פניות'], ['/a/members', ['admin'], A.members, 'חברים'], ['/a/members/:id', ['admin'], A.memberEdit, 'חבר'],
   ['/a/trainings', ['admin'], A.trainings, 'אימונים'], ['/a/trainings/:id', ['admin'], A.trainingEdit, 'אימון'], ['/a/reports', ['admin'], A.reports, 'דוחות נוכחות'],

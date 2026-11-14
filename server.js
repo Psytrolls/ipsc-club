@@ -405,6 +405,35 @@ app.get('/api/instructor/trainings/:id/members/:uid', roles('instructor'), wrap(
   res.json({ member: m, training: trainingView(t, null), ...loadMemberSheet(t.id, uid) });
 }));
 
+// live training mode: roll call + who shot what, in one request (the instructor's own training)
+app.get('/api/instructor/trainings/:id/live', roles('instructor'), wrap((req, res) => {
+  T.sweep();
+  const t = instructorTraining(req);
+  const rows = db.prepare(`SELECT r.*, e.name exercise_name FROM results r LEFT JOIN exercises e ON e.id=r.exercise_id WHERE r.training_id=? ORDER BY r.id`).all(t.id);
+  const byUser = new Map();
+  for (const r of rows) { if (!byUser.has(r.user_id)) byUser.set(r.user_id, []); byUser.get(r.user_id).push({ ...resultOut(r), published: !!r.published }); }
+  res.json({ training: trainingView(t, null), participants: participants(t).map(p => ({ ...p, records: byUser.get(p.id) || [] })) });
+}));
+// add or correct ONE result record without touching the participant's other records or feedback
+app.post('/api/instructor/trainings/:id/members/:uid/record', roles('instructor'), wrap((req, res) => {
+  const t = instructorTraining(req);
+  const uid = idParam(req.params.uid);
+  assertConfirmed(t.id, uid);
+  if (['draft', 'cancelled'].includes(t.status)) throw new HttpError(409, 'לא ניתן להזין תוצאות באימון זה');
+  const body = req.body || {};
+  const att = db.prepare('SELECT status FROM attendance WHERE training_id=? AND user_id=?').get(t.id, uid);
+  if (att && att.status === 'absent') throw new HttpError(409, 'המשתתף סומן כלא הגיע');
+  const existing = db.prepare('SELECT * FROM results WHERE training_id=? AND user_id=? ORDER BY id').all(t.id, uid);
+  const fb = db.prepare('SELECT text FROM feedback WHERE training_id=? AND user_id=?').get(t.id, uid);
+  const keep = r => ({ id: r.id, exercise_id: r.exercise_id, manual_name: r.manual_name, target_type: r.target_type, a: r.a, c: r.c, d: r.d, misses: r.misses, time_sec: r.time_sec });
+  const recs = existing.map(keep);
+  const nr = { id: body.id || null, exercise_id: body.exercise_id, manual_name: body.manual_name, target_type: body.target_type, a: body.a, c: body.c, d: body.d, misses: body.misses, time_sec: body.time_sec };
+  const parsed = parseRecord(nr, 0);
+  if (parsed.id) { const i = recs.findIndex(r => r.id === parsed.id); if (i < 0) throw bad('רשומה לא שייכת לאימון/משתתף זה'); recs[i] = parsed; } else recs.push(parsed);
+  saveSheet(t, uid, req.user, { records: recs, feedback: fb ? fb.text : '', publish: false });
+  res.json(loadMemberSheet(t.id, uid));
+}));
+
 function parseRecord(r, i) {
   const label = `רשומה ${i + 1}`;
   if (!r || typeof r !== 'object') throw bad(`${label}: נתונים לא תקינים`);
